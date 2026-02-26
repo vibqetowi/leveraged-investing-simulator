@@ -137,28 +137,28 @@ const CopywritingHelpers = {
      * Generate intro paragraph text
      */
     getIntroParagraph() {
-        return `The reason investors consider this: the stock market historically returns around <strong>${this.getGrowthRateText()} per year</strong>, while borrowing costs around <strong>${this.getInterestRateText()} (Prime + 1%)</strong>. If you can borrow at ${this.getInterestRateText()} and invest at ${this.getGrowthRateText()}, you keep the ${this.getSpreadText()} difference on borrowed capital. Over ${DEFAULT_INPUTS.LOAN_PERIOD} years, that ${this.getSpreadText()} spread compounds into meaningful wealth.`;
+        return `Leveraged investing means borrowing to invest earlier than you otherwise could. You borrow against your portfolio as collateral, invest the loan immediately, then pay it back over time from your regular income. Stock market returns <strong>${this.getGrowthRateText()} per year</strong> (S&P 500 historical average 1950-2024). Borrowing costs <strong>${this.getInterestRateText()}</strong> (Prime + 1% typical). The ${this.getSpreadText()} spread accrues on borrowed capital when markets rise.`;
     },
 
     /**
      * Generate catch paragraph text
      */
     getCatchParagraph() {
-        return `<em>But here's the catch:</em> That ${this.getSpreadText()} spread only happens if markets go up. When markets crash, you still owe ${this.getInterestRateText()} interest on a shrinking portfolio. This strategy amplifies both gains <strong>and</strong> losses—it's leverage, and leverage cuts both ways.`;
+        return `When markets crash, debt obligations remain fixed at ${this.getInterestRateText()} interest while portfolio value shrinks. Leverage amplifies both gains and losses.`;
     },
 
     /**
      * Generate simulation description
      */
     getSimulationDescription() {
-        return `This calculator tests <strong>${UI_CONSTANTS.NUM_STRATEGIES - 1} different payment strategies</strong> across <strong>${this.getBaseCaseSimulationsText()} different market scenarios</strong>. From these simulations, it builds a probability distribution: what percentage of outcomes result in ruin, what percentage result in underperformance, and what percentage result in profit.`;
+        return `This simulator tests <strong>${UI_CONSTANTS.NUM_STRATEGIES - 1} payment strategies</strong> across <strong>${this.getSimulationCountText()} market scenarios per strategy</strong> (plus <strong>${this.getBaseCaseSimulationsText()} scenarios for DCA baseline</strong>). Generates probability distributions: what percentage result in ruin, underperformance, or outperformance.`;
     },
 
     /**
      * Generate methodology step 2 text
      */
     getMethodologyStep2() {
-        return `Rather than guessing at the optimal payment, we test ${UI_CONSTANTS.NUM_STRATEGIES - 1} different strategies ranging from minimum payment all the way to full amortization (100%). Each strategy represents a different point on the risk-reward spectrum. Some are aggressive (low payment = high leverage), others are conservative (high payment = pay down debt fast).`;
+        return `The simulator tests ${UI_CONSTANTS.NUM_STRATEGIES - 1} payment strategies from minimum payment to monthly budget. Each represents a point on the leverage spectrum: low payment = high leverage; high payment = rapid debt paydown.`;
     },
 
     /**
@@ -167,7 +167,7 @@ const CopywritingHelpers = {
     getMethodologyStep3() {
         const perStrategy = UI_CONSTANTS.SIMULATION_COUNT.toLocaleString();
         const baseline = UI_CONSTANTS.BASE_CASE_SIMULATIONS.toLocaleString();
-        return `For each payment strategy, we simulate ${perStrategy} different market paths. For the benchmark (no-debt baseline), I run ${baseline} simulations for better statistical accuracy.`;
+        return `For each payment strategy, the simulator runs ${perStrategy} randomized market scenarios. For the DCA baseline, it runs ${baseline} scenarios for higher statistical precision.`;
     },
 
     /**
@@ -211,7 +211,7 @@ const CopywritingHelpers = {
      * Generate economics text
      */
     getEconomicsText() {
-        return `Portfolio LOCs work because of the <strong>spread</strong> between borrowing costs and market returns. If borrowing costs are ${this.getInterestRateText()} and stocks return ${this.getGrowthRateText()}, the ${this.getSpreadText()} spread accrues on borrowed capital. Over ${DEFAULT_INPUTS.LOAN_PERIOD} years on $100K borrowed, that compounds significantly.`;
+        return `Leveraged investing works when there's a positive <strong>spread</strong> between borrowing costs and market returns. If borrowing costs are ${this.getInterestRateText()} and stocks return ${this.getGrowthRateText()}, the ${this.getSpreadText()} spread accrues on borrowed capital. Over ${DEFAULT_INPUTS.LOAN_PERIOD} years on $100K borrowed, that compounds significantly.`;
     },
 
     /**
@@ -239,7 +239,7 @@ const CopywritingHelpers = {
      * Generate reference leverage text
      */
     getReferenceLeverageText() {
-        return `<strong>Leverage & The Spread:</strong> The fundamental idea behind Portfolio LOCs is <strong>positive carry</strong>. If you borrow at ${this.getInterestRateText()} and invest at ${this.getGrowthRateText()}, you keep ${this.getSpreadText()} on borrowed capital. Read more: <a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Investopedia's carry trade explanation</a>. The catch: this only works if markets go up. In down markets, you're paying ${this.getInterestRateText()} on a shrinking asset base—the exact opposite dynamic.`;
+        return `<strong>Leverage & The Spread:</strong> Leveraged investing relies on <strong>positive carry</strong>. If you borrow at ${this.getInterestRateText()} and invest at ${this.getGrowthRateText()}, you keep ${this.getSpreadText()} on borrowed capital. Read more: <a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Investopedia's carry trade explanation</a>. The catch: this only works if markets go up. In down markets, you're paying ${this.getInterestRateText()} on a shrinking asset base—the exact opposite dynamic.`;
     },
 
     /**
@@ -267,21 +267,21 @@ const CopywritingHelpers = {
      * Generate Monte Carlo intro text
      */
     getMonteCarloIntroText() {
-        return `This tool uses <strong>Monte Carlo simulation</strong> combined with <strong>Present Value of Annuity</strong> principles to stress-test a Portfolio LOC strategy across ${this.getSimulationCountText()} different market scenarios.`;
+        return `This tool uses <strong>Monte Carlo simulation</strong> with <strong>geometric Brownian motion</strong> to test leveraged investing strategies across ${this.getSimulationCountText()} randomized market scenarios per strategy.`;
     },
 
     /**
      * Get mode description for Standard Mode
      */
     getModeStandardDescription() {
-        return `<p><strong>Standard Mode:</strong> Uses research-backed defaults. Set your budget, collateral, and desired LTV; the calculator determines your loan amount and payment strategy.</p>`;
+        return `<p><strong>Standard Mode:</strong> Research-backed defaults (7% interest, 8% growth, 15% volatility, 60% liquidation threshold). Set budget, collateral, LTV. Simulator tests payment strategies from minimum to maximum budget allocation.</p>`;
     },
 
     /**
      * Get mode description for Custom Mode
      */
     getModeCustomDescription() {
-        return `<p><strong>Custom Mode:</strong> For power users auditing other lenders, different borrowing costs, or higher-risk margin strategies. All parameters are unlocked including inflation rate; variability and risk increase with inputs.</p>`;
+        return `<p><strong>Custom Mode:</strong> All parameters unlocked. For testing specific lending terms, alternative market assumptions, or margin strategies. Adjust interest rates, growth expectations, volatility, liquidation thresholds, and inflation.</p>`;
     },
 
     /**
@@ -343,19 +343,21 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Generate verdict from trinary statistics
+     * INTERNAL: Classify strategy based on risk metrics (pure logic, no formatting)
+     * Returns: { status, category, spread, ... } without formatting
      */
-    generateVerdict(trinaryStats) {
+    _classifyStrategy(trinaryStats) {
         if (!trinaryStats) return null;
         
         const { ruinPercent, suckerPercent, profitPercent } = trinaryStats;
         const spreadPercent = profitPercent - suckerPercent;
         
+        // Classification thresholds
         const POINTLESS_CEILING = 10.0;
         const STRONG_FLOOR = 20.0;
         const ACCEPTABLE_RUIN_THRESHOLD = 5.0;
         
-        // Verdict classification logic:
+        // Classification logic:
         // - DANGEROUS: Any ruin > 5% is unacceptable
         // - POINTLESS: Spread < 10% (even if ruin is low, no edge)
         // - MARGINAL: Ruin between 2-5% OR spread 10-20% (some edge but risky)
@@ -366,52 +368,99 @@ const CopywritingHelpers = {
         const isStrong = spreadPercent >= STRONG_FLOOR && ruinPercent < 2.0;
         const isMarginal = !isDangerous && !isStrong && !isPointless;
         
-        let status = null;
+        let classification = {
+            status: 'MARGINAL',
+            isDangerous,
+            isPointless,
+            isStrong,
+            isMarginal,
+            spread: spreadPercent
+        };
+        
+        if (isDangerous) {
+            classification.status = 'DANGEROUS';
+        } else if (isPointless) {
+            classification.status = 'POINTLESS';
+        } else if (isStrong) {
+            classification.status = 'STRONG';
+        } else {
+            classification.status = 'MARGINAL';
+        }
+        
+        return classification;
+    },
+
+    /**
+     * INTERNAL: Generate fix suggestions based on classification (pure logic)
+     * Returns: array of fix strings or null
+     */
+    _suggestFixes(classification, trinaryStats) {
+        const { ruinPercent, suckerPercent, profitPercent } = trinaryStats;
+        let fixes = [];
+        
+        if (classification.isDangerous) {
+            fixes.push("<strong>Reduce your Loan Amount.</strong> Your borrowed capital is too large relative to your safety buffer. Avoid borrowing more than a third of your portfolio's value.");
+            fixes.push("<strong>Add More Collateral.</strong> Deposit additional cash into your account without borrowing more. This strengthens your cushion against margin calls.");
+            fixes.push("<strong>Increase Monthly Payment.</strong> Pay down the loan faster before a crash occurs. The longer you stay leveraged, the higher your ruin risk.");
+        } else if (classification.isPointless) {
+            fixes.push("<strong>Check Your Interest Rate.</strong> If you're paying more than 7-8% annual interest, leverage rarely works mathematically. Consider switching to a lower-cost loan or margin product.");
+            fixes.push("<strong>Increase Your Monthly Budget.</strong> Pay down the principal faster. Leverage works best when your debt is a shrinking percentage of your assets.");
+            fixes.push("<strong>Extend Your Time Horizon.</strong> If your simulation is under 10 years, short-term volatility is drowning out long-term gains. Leverage needs time to compound.");
+        } else if (classification.isMarginal) {
+            fixes.push("<strong>Lower Your LTV by 5%.</strong> Often, a small reduction in borrowed capital significantly increases your spread by reducing interest costs and ruin risk together.");
+            fixes.push("<strong>Invest Your Monthly Surplus.</strong> Ensure the money you don't use for debt payments goes into growth assets (stocks/ETFs), not cash. If you're holding cash, you're wasting the leverage benefit.");
+            fixes.push("<strong>Test Interest Rate Risk.</strong> Try to increase your interest rate by 1%. If this strategy becomes \"Pointless,\" it's too fragile. You need more cushion.");
+        }
+        
+        return fixes.length > 0 ? fixes : null;
+    },
+
+    /**
+     * Generate formatted verdict from trinary statistics
+     * Wraps internal _classifyStrategy() and _suggestFixes() for presentation
+     */
+    generateVerdict(trinaryStats) {
+        if (!trinaryStats) return null;
+        
+        const { ruinPercent, suckerPercent, profitPercent } = trinaryStats;
+        const spreadPercent = profitPercent - suckerPercent;
+        
+        // Get pure classification
+        const classification = this._classifyStrategy(trinaryStats);
+        
+        // Get fix suggestions
+        const fixSuggestion = this._suggestFixes(classification, trinaryStats);
+        
+        // Format for presentation
         let color = null;
         let icon = null;
         let title = null;
         let message = null;
-        let fixSuggestion = null;
         
-        if (isDangerous) {
-            status = 'DANGEROUS';
+        if (classification.isDangerous) {
             color = '#B3261E';
             icon = '⛔';
             title = 'DANGEROUS: UNACCEPTABLE RUIN RISK';
             message = `You have a <strong>${ruinPercent.toFixed(1)}%</strong> chance of ruin (liquidation or ending with a loss). This exceeds acceptable risk tolerance. Reduce borrowed principal or increase monthly payment significantly.`;
-            fixSuggestion = this.generateDiagnosticFix('dangerous', trinaryStats);
-        } else if (isPointless) {
-            status = 'POINTLESS';
+        } else if (classification.isPointless) {
             color = '#FF9800';
             icon = '⚠️';
             title = 'POINTLESS: ODDS UNFAVORABLE';
             message = `The probability of outperforming a standard no-debt investment is <strong>${profitPercent.toFixed(1)}%</strong>. Underperformance probability is <strong>${(suckerPercent + ruinPercent).toFixed(1)}%</strong> combined (ruin or negative spread). The borrowing cost exceeds the investment return advantage.`;
-            fixSuggestion = this.generateDiagnosticFix('pointless', trinaryStats);
-        } else if (isMarginal) {
-            status = 'MARGINAL';
+        } else if (classification.isMarginal) {
             color = '#AFAFAF';
             icon = '🤔';
             title = 'MARGINAL: MODERATE EDGE OR ELEVATED RUIN';
             message = `Spread advantage: <strong>${spreadPercent.toFixed(1)}%</strong> per year. Profit probability: <strong>${profitPercent.toFixed(1)}%</strong>. Underperformance probability: <strong>${suckerPercent.toFixed(1)}%</strong>. Ruin probability: <strong>${ruinPercent.toFixed(1)}%</strong>. Strategy is marginal due to either limited spread advantage (target >20%) or elevated ruin risk (target <2%). Expect mixed outcomes with volatility risk during downturns.`;
-            fixSuggestion = this.generateDiagnosticFix('marginal', trinaryStats);
-        } else if (isStrong) {
-            status = 'STRONG';
+        } else if (classification.isStrong) {
             color = '#1B5E20';
             icon = '✅';
             title = 'STRONG: FAVORABLE RISK-REWARD RATIO';
             message = `Spread advantage: <strong>${spreadPercent.toFixed(1)}%</strong> per year. Profit probability: <strong>${profitPercent.toFixed(1)}%</strong>. Ruin risk: <strong>${ruinPercent.toFixed(1)}%</strong>. The spread is sufficient to meet industry standards (>20%) with ruin risk contained below 2%. The strategy has mathematical justification relative to risk.`;
-            fixSuggestion = null;
-        } else {
-            status = 'MARGINAL';
-            color = '#AFAFAF';
-            icon = '🤔';
-            title = 'MARGINAL: INSUFFICIENT DATA';
-            message = `Spread: <strong>${spreadPercent.toFixed(1)}%</strong>. Ruin probability: <strong>${ruinPercent.toFixed(1)}%</strong>. Classification: marginal strategy with limited advantage.`;
-            fixSuggestion = this.generateDiagnosticFix('marginal', trinaryStats);
         }
         
         return {
-            status,
+            status: classification.status,
             color,
             icon,
             title,
@@ -425,27 +474,18 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Generate diagnostic fix suggestions by category
+     * Generate diagnostic fix suggestions by category (deprecated - use _suggestFixes internally)
+     * Kept for backward compatibility during refactoring
      */
     generateDiagnosticFix(category, trinaryStats) {
-        const { ruinPercent, suckerPercent, profitPercent } = trinaryStats;
-        let fixes = [];
-        
-        if (category === 'dangerous') {
-            fixes.push("<strong>Reduce your Loan Amount.</strong> Your borrowed capital is too large relative to your safety buffer. Avoid borrowing more than a third of your portfolio's value.");
-            fixes.push("<strong>Add More Collateral.</strong> Deposit additional cash into your account without borrowing more. This strengthens your cushion against margin calls.");
-            fixes.push("<strong>Increase Monthly Payment.</strong> Pay down the loan faster before a crash occurs. The longer you stay leveraged, the higher your ruin risk.");
-        } else if (category === 'pointless') {
-            fixes.push("<strong>Check Your Interest Rate.</strong> If you're paying more than 7-8% annual interest, leverage rarely works mathematically. Consider switching to a lower-cost loan or margin product.");
-            fixes.push("<strong>Increase Your Monthly Budget.</strong> Pay down the principal faster. Leverage works best when your debt is a shrinking percentage of your assets.");
-            fixes.push("<strong>Extend Your Time Horizon.</strong> If your simulation is under 10 years, short-term volatility is drowning out long-term gains. Leverage needs time to compound.");
-        } else if (category === 'marginal') {
-            fixes.push("<strong>Lower Your LTV by 5%.</strong> Often, a small reduction in borrowed capital significantly increases your spread by reducing interest costs and ruin risk together.");
-            fixes.push("<strong>Invest Your Monthly Surplus.</strong> Ensure the money you don't use for debt payments goes into growth assets (stocks/ETFs), not cash. If you're holding cash, you're wasting the leverage benefit.");
-            fixes.push("<strong>Test Interest Rate Risk.</strong> Try to increase your interest rate by 1%. If this strategy becomes \"Pointless,\" it's too fragile. You need more cushion.");
-        }
-        
-        return fixes.length > 0 ? fixes : null;
+        // Legacy interface - convert category to classification object
+        const classification = {
+            isDangerous: category === 'dangerous',
+            isPointless: category === 'pointless',
+            isMarginal: category === 'marginal',
+            isStrong: category === 'strong'
+        };
+        return this._suggestFixes(classification, trinaryStats);
     },
 
     /**

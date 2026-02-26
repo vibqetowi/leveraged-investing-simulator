@@ -1,6 +1,6 @@
 /**
- * Configuration Management for Portfolio LOC Strategy Analyzer
- * Contains all assumption constants and UI defaults
+ * Configuration Management for Leveraged Investing Simulator
+ * Contains all assumption constants and UI defaults for testing lump sum vs DCA strategies
  */
 
 // Standard Mode Default Values (Research-backed assumptions)

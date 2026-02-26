@@ -1,48 +1,3 @@
-/**
- * Portfolio LOC Strategy Analyzer - Main Script
- * Implements Monte Carlo simulation with inflation adjustment, 
- * histogram visualization, and interactive slider
- * 
- * DATA FLOW ARCHITECTURE:
- * ┌─────────────┐
- * │ 1. UI Input │ User fills form with loan parameters
- * └──────┬──────┘
- *        ↓
- * ┌─────────────────────────┐
- * │ 2. Integration Layer    │ getSimulationInputs() collects form data
- * │    (integration.js)     │ runSimulationWithAdapter() coordinates execution
- * └──────┬──────────────────┘
- *        ↓
- * ┌─────────────────────────┐
- * │ 3. Adapter Layer        │ marshallInputs() converts UI → flat buffer
- * │    (adapter.js)         │ Spawns Web Worker for non-blocking execution
- * └──────┬──────────────────┘
- *        ↓
- * ┌─────────────────────────┐
- * │ 4. Web Worker           │ Loads WebAssembly module
- * │    (simulation.worker)  │ Writes input buffer, calls runSimulation()
- * └──────┬──────────────────┘
- *        ↓
- * ┌─────────────────────────┐
- * │ 5. WebAssembly Engine   │ Runs UI_CONSTANTS.NUM_STRATEGIES scenarios
- * │    (assembly/index.ts)  │ Each scenario: UI_CONSTANTS.SIMULATION_COUNT Monte Carlo simulations
- * │                         │ Returns flat buffer with survival rates, wealth arrays
- * └──────┬──────────────────┘
- *        ↓
- * ┌─────────────────────────┐
- * │ 6. Adapter Layer        │ unmarshallResults() converts buffer → objects
- * │    (adapter.js)         │ Links benchmark data to each strategy
- * └──────┬──────────────────┘
- *        ↓
- * ┌─────────────────────────┐
- * │ 7. Display Layer        │ displayResults() receives full results object
- * │    (script.js)          │ ├─ renderHistogram() generates Plotly charts
- * │                         │ └─ updateSummary() displays strategic analysis
- * └─────────────────────────┘
- * 
- * All numeric constants (simulation counts, default rates, etc.) are defined in config.js
- */
-
 // Global state
 let currentMode = 'standard';
 let riskTarget = UI_CONSTANTS.DEFAULT_RISK_PROFILES.median; // Default to median
@@ -433,21 +388,6 @@ function updatePaymentType() {
 }
 
 /**
- * Generate random normal variable (Box-Muller transform)
- */
-function randn_bm() {
-    let u = 0, v = 0;
-    while(u === 0) u = Math.random();
-    while(v === 0) v = Math.random();
-    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-}
-
-
-/**
- * Main Simulation Function
- * Runs Monte Carlo simulations with inflation adjustment
- */
-/**
  * Main Simulation Runner - Uses WebAssembly if available, falls back to JS
  */
 async function runSimulation() {
@@ -484,245 +424,6 @@ async function runSimulation() {
     }
 }
 
-/**
- * Legacy JavaScript Implementation (Fallback)
- * Preserved for browsers without WebAssembly support
- */
-function runSimulationLegacy() {
-    if (!validateInputs()) {
-        return;
-    }
-
-    const loan = parseFloat(document.getElementById('loanAmount').value);
-    const assetInput = parseFloat(document.getElementById('assetValue').value);
-    const years = parseFloat(document.getElementById('loanPeriod').value);
-    const paymentTypeSelect = document.getElementById('paymentType').value;
-    const monthlyBudget = parseFloat(document.getElementById('monthlyBudget').value);
-    
-    // Book value of collateral account (always collateral-based)
-    const initialEquity = assetInput;
-    
-    const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
-    const g = parseFloat(document.getElementById('growth').value) / 100;
-    const vol = parseFloat(document.getElementById('vol').value) / 100;
-    const marginCallLTV = parseFloat(document.getElementById('marginCall').value) / 100;
-    const inflationRate = parseFloat(document.getElementById('inflationRate').value) / 100;
-    
-    const months = years * 12;
-    const mRate = annualRate / 12;
-    const leveragedSimulations = UI_CONSTANTS.SIMULATION_COUNT;
-    const benchmarkSimulations = UI_CONSTANTS.BASE_CASE_SIMULATIONS;
-
-    const amortizedPayment = loan * (mRate * Math.pow(1 + mRate, months)) / (Math.pow(1 + mRate, months) - 1);
-    const monthlyInterest = loan * mRate;
-    
-    // Determine minimum payment based on payment type selector
-    let minRequired = parseFloat(document.getElementById('minPayment').value);
-    let minPayment;
-    
-    if (paymentTypeSelect === 'interest') {
-        minPayment = monthlyInterest;
-    } else {
-        // custom - use the value entered by user
-        minPayment = minRequired;
-    }
-    
-    let results = [];
-    
-    // Calculate the maximum payment strategy: use the full monthly budget
-    const maxPayment = monthlyBudget;
-    
-    // Calculate the percentage that minimum payment represents of max payment
-    const minPaymentPercent = (minPayment / maxPayment) * 100;
-    const numSteps = UI_CONSTANTS.NUM_STRATEGIES;
-    const stepSize = (100 - minPaymentPercent) / (numSteps - 1);
-    
-    // Pre-calculate all cash flow schedules (deterministic debt and deposit paths)
-    console.log('[LegacySimulation] Pre-calculating cash flow schedules...');
-    const allSchedules = [];
-    
-    // Benchmark schedule: no debt, just full budget deposits
-    // Now includes T=0 element (months+1 total elements)
-    const benchmarkDeposits = [0]; // T=0: no initial deposit
-    const benchmarkDebt = [0];     // T=0: no initial debt
-    for (let month = 1; month <= months; month++) {
-        benchmarkDeposits.push(monthlyBudget);
-        benchmarkDebt.push(0);
-    }
-    allSchedules.push({ debtPath: benchmarkDebt, depositPath: benchmarkDeposits });
-    
-    // Leveraged strategy schedules
-    for(let i = 0; i < numSteps - 1; i++) {
-        const percentOfMax = minPaymentPercent + (i * stepSize);
-        const payment = (percentOfMax / 100) * maxPayment;
-        
-        const schedule = generateCashFlowSchedule(loan, mRate, payment, monthlyBudget, months);
-        allSchedules.push(schedule);
-    }
-    console.log('[LegacySimulation] ✓ Pre-calculated', allSchedules.length, 'schedules');
-    
-    // Calculate 11 payment strategies from minimum to maximum feasible payment (monthly budget)
-    for(let i = 0; i < numSteps; i++) {
-        const percentOfMax = minPaymentPercent + (i * stepSize);
-        const k = percentOfMax / 100;
-        const payment = k * maxPayment;
-        const paymentPercent = percentOfMax;
-        const surplus = monthlyBudget - payment;
-        
-        let survivedCount = 0;
-        let finalWealths = [];
-        let benchmarkWealths = [];
-
-        // Get pre-calculated deposit and debt paths for this strategy
-        const schedule = allSchedules[i + 1]; // +1 because index 0 is benchmark
-        const depositPath = schedule.depositPath;
-        const debtPath = schedule.debtPath;
-        
-        // Track cash flows for each strategy
-        const totalBudgeted = monthlyBudget * months;
-        const totalDebtPayments = payment * months;
-        const totalSurplusInvested = surplus * months;
-
-        for (let s = 0; s < leveragedSimulations; s++) {
-            let assets = initialEquity + loan;
-            let benchmarkAssets = initialEquity;
-            let ruined = false;
-
-            // Loop from month 1 to months (paths now include T=0 at index 0)
-            for (let t = 1; t <= months; t++) {
-                const ret = Math.exp((g - 0.5 * vol * vol) * (1/12) + vol * Math.sqrt(1/12) * randn_bm());
-                
-                // Use pre-calculated deposit path (index t corresponds to end of month t)
-                assets = (assets * ret) + depositPath[t];
-                benchmarkAssets = (benchmarkAssets * ret) + monthlyBudget;
-                
-                // Use pre-calculated debt path (index t corresponds to debt at end of month t)
-                const debt = debtPath[t];
-
-                if (debt / assets > marginCallLTV) {
-                    ruined = true; 
-                    break; 
-                }
-            }
-
-            if (!ruined) {
-                survivedCount++;
-                // Calculate final wealth using last debt value (at month index = months)
-                const finalDebt = debtPath[months];
-                const nominalWealth = assets - finalDebt;
-                
-                // Convert to Real Dollars: RealWealth = NominalWealth / (1 + InflationRate)^Years
-                const realWealth = nominalWealth / Math.pow(1 + inflationRate, years);
-                
-                finalWealths.push(realWealth);
-            }
-
-            if (s < benchmarkSimulations) {
-                const nominalBenchmark = benchmarkAssets;
-                const realBenchmark = nominalBenchmark / Math.pow(1 + inflationRate, years);
-                benchmarkWealths.push(realBenchmark);
-            }
-        }
-
-        for (let s = leveragedSimulations; s < benchmarkSimulations; s++) {
-            let benchmarkAssets = initialEquity;
-
-            // Loop from month 1 to months
-            for (let t = 1; t <= months; t++) {
-                const ret = Math.exp((g - 0.5 * vol * vol) * (1/12) + vol * Math.sqrt(1/12) * randn_bm());
-                benchmarkAssets = (benchmarkAssets * ret) + monthlyBudget;
-            }
-
-            const nominalBenchmark = benchmarkAssets;
-            const realBenchmark = nominalBenchmark / Math.pow(1 + inflationRate, years);
-            benchmarkWealths.push(realBenchmark);
-        }
-
-        finalWealths.sort((a, b) => a - b);
-        
-        // Calculate percentiles in Real Dollars
-        const medianWealth = finalWealths.length > 0 ? finalWealths[Math.floor(finalWealths.length * UI_CONSTANTS.WEALTH_PERCENTILES.median / 100)] : 0;
-        const p90Wealth = finalWealths.length > 0 ? finalWealths[Math.floor(finalWealths.length * UI_CONSTANTS.WEALTH_PERCENTILES.high / 100)] : 0;
-
-        benchmarkWealths.sort((a, b) => a - b);
-        const benchmarkMedian = benchmarkWealths.length > 0 ? benchmarkWealths[Math.floor(benchmarkWealths.length * UI_CONSTANTS.WEALTH_PERCENTILES.median / 100)] : 0;
-        const benchmarkExpected = benchmarkWealths.length > 0
-            ? benchmarkWealths.reduce((sum, value) => sum + value, 0) / benchmarkWealths.length
-            : 0;
-        const benchmarkVariance = benchmarkWealths.length > 0
-            ? benchmarkWealths.reduce((sum, value) => sum + Math.pow(value - benchmarkExpected, 2), 0) / benchmarkWealths.length
-            : 0;
-        const benchmarkSigma = Math.sqrt(benchmarkVariance);
-
-        const expectedWealth = finalWealths.length > 0
-            ? finalWealths.reduce((sum, value) => sum + value, 0) / finalWealths.length
-            : 0;
-        const benchmarkPercentDiff = benchmarkExpected > 0
-            ? ((expectedWealth - benchmarkExpected) / benchmarkExpected) * 100
-            : 0;
-        
-        results.push({
-            paymentAmount: payment,
-            surplusAmount: surplus,
-            paymentPercent,
-            survivalRate: (survivedCount / leveragedSimulations) * 100,
-            medianWealth,
-            p90Wealth,
-            expectedWealth,
-            benchmarkPercentDiff,
-            amortizedPayment,
-            finalWealthArray: finalWealths,
-            benchmarkWealthArray: benchmarkWealths,
-            benchmarkMedian,
-            benchmarkExpected,
-            benchmarkSigma,
-            totalBudgeted,
-            totalDebtPayments,
-            totalInvested: totalSurplusInvested,
-            totalInterestPaid: (totalDebtPayments - loan),
-            debtPath: schedule.debtPath,
-            depositPath: schedule.depositPath
-        });
-    }
-
-    // Find the strategy index closest to the amortized payment amount
-    // Only consider leveraged strategies (0-9) for pill display
-    let closestIndex = 0;
-    let minDiff = Math.abs(results[0].paymentAmount - amortizedPayment);
-    for (let i = 1; i < Math.min(10, results.length); i++) {
-        const diff = Math.abs(results[i].paymentAmount - amortizedPayment);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closestIndex = i;
-        }
-    }
-    amortizationStrategyIndex = closestIndex;
-
-    const loanDetails = {
-        loanAmount: loan,
-        initialEquity: initialEquity,
-        months: months,
-        amortizedPayment: amortizedPayment,
-        monthlyBudget: monthlyBudget,
-        interestRate: annualRate,
-        inflationRate: inflationRate,
-        years: years
-    };
-    
-    // Store results globally for slider interaction
-    simulationResults = {
-        strategies: results,
-        loanDetails: loanDetails,
-        benchmark: {
-            debtPath: allSchedules[0].debtPath,
-            depositPath: allSchedules[0].depositPath
-        }
-    };
-    
-    displayResults(simulationResults);
-
-    return simulationResults;
-}
 
 /**
  * Find Target Strategy Index based on Risk Target
@@ -755,68 +456,6 @@ function findTargetStrategyIndex(targetSurvival) {
     return closest.index;
 }
 
-/**
- * Calculate Trinary Outcome Statistics
- * Categorizes 100% of outcomes into: Ruin, Sucker, Profit
- * 
- * Ruin: Margin call (wealth = $0) OR ended with wealth < initial equity
- * Profit: Survived AND final wealth > benchmark median
- * Sucker: Survived AND initial equity <= wealth <= benchmark median
- */
-function calculateTrinaryStats(strategyIndex) {
-    if (!simulationResults) return null;
-    
-    const strategy = simulationResults.strategies[strategyIndex];
-    const leveragedWealths = strategy.finalWealthArray;
-    const benchmarkMedian = strategy.benchmarkMedian;
-    const initialEquity = simulationResults.loanDetails.initialEquity;
-    
-    const totalSimulations = UI_CONSTANTS.SIMULATION_COUNT;
-    const survivors = leveragedWealths.length;
-    const marginCalls = totalSimulations - survivors;
-    
-    // RUIN: Margin call OR ended with less than initial equity
-    const lostMoney = leveragedWealths.filter(w => w < initialEquity).length;
-    const ruinCount = marginCalls + lostMoney;
-    const ruinPercent = (ruinCount / totalSimulations) * 100;
-    
-    // Among survivors who didn't lose money, categorize by benchmark comparison
-    const profitSurvivors = leveragedWealths.filter(w => w >= initialEquity && w > benchmarkMedian).length;
-    const suckerSurvivors = leveragedWealths.filter(w => w >= initialEquity && w <= benchmarkMedian).length;
-    
-    // PROFIT: Survived with profit AND outperformed benchmark
-    const profitPercent = (profitSurvivors / totalSimulations) * 100;
-    
-    // SUCKER: Survived with profit BUT underperformed benchmark
-    const suckerPercent = (suckerSurvivors / totalSimulations) * 100;
-    
-    // Verify: Ruin % + Sucker % + Profit % = 100%
-    const total = ruinPercent + suckerPercent + profitPercent;
-    
-    return {
-        ruinPercent: Math.max(0, ruinPercent),
-        suckerPercent: Math.max(0, suckerPercent),
-        profitPercent: Math.max(0, profitPercent),
-        ruinCount: ruinCount,
-        profitCount: profitSurvivors,
-        suckerCount: suckerSurvivors,
-        totalSims: totalSimulations,
-        calculationTotal: total  // Should equal 100 (for verification)
-    };
-}
-
-/**
- * Generate Verdict Based on Trinary Outcomes (Ruin/Sucker/Profit)
- * 
- * Professional Trading Standards - Status Logic:
- * - Red Status (DANGEROUS): Ruin > 5% (unacceptable - includes both margin calls and losses)
- * - Orange Status (POINTLESS): Profit % - Sucker % < 10% (and Ruin <= 5%)
- * - Grey Status (MARGINAL): Ruin 2-5% OR spread 10-20% (moderate edge or elevated risk)
- * - Green Status (STRONG): Spread >= 20% AND Ruin < 2% (strong edge with contained risk)
- * 
- * Note: Ruin includes BOTH margin call liquidations AND ending with wealth < initial equity.
- * All ruin is treated equally regardless of the specific failure mode.
- */
 /**
  * Render Histogram for a Specific Strategy
  * Uses "0 to Mean + 1 Sigma" filtering for performance and ethical display
@@ -1072,14 +711,40 @@ function renderHistogram(strategyIndex) {
     return Plotly.newPlot('histogramChart', [benchmarkTrace, ruinTrace, underperformedTrace, overperformedTrace], layout, config);
 }
 
+/**
+ * Detect investing mode based on strategy characteristics
+ * Returns 'lifecycle' or 'margin'
+ */
+function detectInvestingMode(strategy, loanDetails) {
+    const paymentAmount = strategy.paymentAmount;
+    const loanAmount = loanDetails.loanAmount;
+    const monthlyInterest = loanAmount * (loanDetails.interestRate / 12);
+    const initialEquity = loanDetails.initialEquity;
+    const ltv = (loanAmount / (loanAmount + initialEquity)) * 100;
+    
+    // Margin indicators: interest-only payments, high LTV, minimal principal paydown
+    const isInterestOnly = Math.abs(paymentAmount - monthlyInterest) < (monthlyInterest * 0.1);
+    const isHighLTV = ltv > 40;
+    const isMinimalPayment = paymentAmount < (loanAmount * 0.005); // Less than 0.5% of loan per month
+    
+    if ((isInterestOnly || isMinimalPayment) && isHighLTV) {
+        return 'margin';
+    }
+    
+    return 'lifecycle';
+}
+
 function updateSummary(strategyIndex) {
     if (!simulationResults) return;
     
     const strategy = simulationResults.strategies[strategyIndex];
     const loanDetails = simulationResults.loanDetails;
     
-    // Calculate trinary statistics (Ruin/Sucker/Profit)
-    const trinaryStats = calculateTrinaryStats(strategyIndex);
+    // Detect mode
+    const mode = detectInvestingMode(strategy, loanDetails);
+    
+    // Use pre-calculated trinary statistics from orchestrator results
+    const trinaryStats = strategy.trinaryStats;
     const verdict = CopywritingHelpers.generateVerdict(trinaryStats);
     
     const summaryBox = document.getElementById('dynamicSummary');
@@ -1090,13 +755,82 @@ function updateSummary(strategyIndex) {
     const survivalRate = strategy.survivalRate;
     const benchmarkMedian = strategy.benchmarkMedian;
     const delta = medianRealWealth - benchmarkMedian;
+    const spreadPercent = trinaryStats.profitPercent - trinaryStats.suckerPercent;
 
     // Get narrative text from copywriting helpers
     const narrative = CopywritingHelpers.getStrategySummaryNarrative(monthlyBudget, debtPayment, marketInvestment, survivalRate, medianRealWealth, benchmarkMedian, delta);
 
-    // Build the summary HTML with verdict
-    let summaryHTML = `
+    // Build the summary HTML based on mode
+    let summaryHTML = '';
+    
+    if (mode === 'lifecycle') {
+        // RISK-SHIFTING: Educational content about risk-shifting
+        summaryHTML = `
+        <!-- RISK-SHIFTING ANALYSIS -->
+        <div style="background: #E3F2FD; border: 3px solid #2196F3; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #1565C0;">📊 Risk-Shifting (Risk-Shifting)</h3>
+            <p style="color: #333;">
+                This strategy borrows once, invests immediately, pays back over time. The goal: shift market exposure across your lifetime instead of concentrating it when you're older.
+            </p>
+        </div>
+        
+        <!-- OUTCOME ZONES GRID -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
+            <div style="background: #ffebee; border-left: 4px solid #B3261E; padding: 16px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 28px; font-weight: bold; color: #B3261E;">${trinaryStats.ruinPercent.toFixed(1)}%</div>
+                <div style="font-size: 0.9rem; color: #666; font-weight: 600;">RUIN</div>
+                <div style="font-size: 0.75rem; color: #999;">Loss/Liquidation</div>
+            </div>
+            <div style="background: #fff3e0; border-left: 4px solid #FF9800; padding: 16px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 28px; font-weight: bold; color: #FF9800;">${trinaryStats.suckerPercent.toFixed(1)}%</div>
+                <div style="font-size: 0.9rem; color: #666; font-weight: 600;">SUCKER</div>
+                <div style="font-size: 0.75rem; color: #999;">Underperform DCA</div>
+            </div>
+            <div style="background: #e8f5e9; border-left: 4px solid #1B5E20; padding: 16px; border-radius: 4px; text-align: center;">
+                <div style="font-size: 28px; font-weight: bold; color: #1B5E20;">${trinaryStats.profitPercent.toFixed(1)}%</div>
+                <div style="font-size: 0.9rem; color: #666; font-weight: 600;">PROFIT</div>
+                <div style="font-size: 0.75rem; color: #999;">Outperform DCA</div>
+            </div>
+        </div>
 
+        <p style="margin-top: 20px;">${narrative.allocation}</p>
+        <p>${narrative.paymentBreakdown}</p>
+        <p>${narrative.outcomes}</p>
+        <p><strong>${narrative.baseline}</strong></p>
+        <p><strong>${narrative.leverageImpact}</strong></p>
+        
+        <hr style="margin-top: 20px; margin-bottom: 20px; border: none; border-top: 1px solid #E0E0E0;">
+        
+        <!-- RISK-SHIFTING GUIDANCE -->
+        <div style="margin-top: 24px; background: #E8F5E9; padding: 16px; border-radius: 4px; border-left: 4px solid #1B5E20;">
+            <h4 style="margin-top: 0; color: #1B5E20;">Evaluating Risk-Shifting</h4>
+            <p style="font-size: 0.9rem; line-height: 1.6;">
+                <strong>Risk-Shifting Spread:</strong> Profit ${trinaryStats.profitPercent.toFixed(1)}% vs Sucker ${trinaryStats.suckerPercent.toFixed(1)}% = <strong>${spreadPercent.toFixed(1)}%</strong> spread. 
+                ${spreadPercent > 0 ? 'Positive spread indicates leverage shifts market exposure forward successfully.' : 'Negative spread indicates DCA outperforms leveraged deployment.'}
+            </p>
+            <p style="font-size: 0.9rem; line-height: 1.6;">
+                <strong>Liquidation Risk:</strong> ${trinaryStats.ruinPercent.toFixed(1)}% probability. 
+                ${trinaryStats.ruinPercent < 2 ? 'Within acceptable range (target < 2%).' : 'Exceeds acceptable threshold. Reduce loan amount or increase payments.'}
+            </p>
+            <p style="font-size: 0.9rem; line-height: 1.6;">
+                <strong>Time Advantage:</strong> Check the "Deposits Over Time" chart below. The gap between DCA (blue) and leveraged deposits (purple) shows the time advantage leverage provides. When DCA catches up, it has deployed the same capital but over a longer period.
+            </p>
+            <p style="font-size: 0.9rem; line-height: 1.6; margin-top: 12px; padding: 12px; background: #FFF3E0; border-radius: 4px;">
+                <strong>⚠️ Advisory Required:</strong> Risk-Shifting involves tax implications, sequence-of-returns risk, and personal circumstances this simulator cannot model. Consult licensed financial advisors before implementation.
+            </p>
+        </div>
+        `;
+    } else {
+        // MARGIN: Show verdict and recommendations
+        summaryHTML = `
+
+        <!-- MARGIN STRATEGY HEADER -->
+        <div style="background: #FFF3E0; border: 3px solid #FF9800; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h3 style="margin-top: 0; color: #F57F17;">📈 Margin Strategy (Return Amplification)</h3>
+            <p style="color: #333;">
+                This strategy maintains leverage continuously to amplify returns. Higher risk, higher potential reward.
+            </p>
+        </div>
         
         <!-- VERDICT CONTAINER (Traffic Light) -->
         <div style="background: ${verdict.color}; border: 3px solid ${verdict.color}; border-radius: 8px; padding: 20px; margin: 20px 0; color: white;">
@@ -1180,19 +914,20 @@ function updateSummary(strategyIndex) {
                 ${CopywritingHelpers.getSuccessCriteriaNoteText()}
             </p>
         </div>
-    `;
-    
-    // Add diagnostic fix suggestions if available
-    if (verdict.fixSuggestion && verdict.fixSuggestion.length > 0) {
-        const fixListHTML = verdict.fixSuggestion.map(fix => `<li style="margin: 8px 0; line-height: 1.5;">${fix}</li>`).join('');
-        summaryHTML += `
-        <div style="margin-top: 24px; background: #FFF8E1; border-left: 4px solid #FF9800; padding: 16px; border-radius: 4px;">
-            <h4 style="margin-top: 0; color: #F57F17;">${CopywritingHelpers.getFixStrategyHeaderText()}</h4>
-            <ul style="margin: 12px 0; padding-left: 20px;">
-                ${fixListHTML}
-            </ul>
-        </div>
         `;
+        
+        // Add diagnostic fix suggestions if available (margin mode only)
+        if (verdict.fixSuggestion && verdict.fixSuggestion.length > 0) {
+            const fixListHTML = verdict.fixSuggestion.map(fix => `<li style="margin: 8px 0; line-height: 1.5;">${fix}</li>`).join('');
+            summaryHTML += `
+            <div style="margin-top: 24px; background: #FFF8E1; border-left: 4px solid #FF9800; padding: 16px; border-radius: 4px;">
+                <h4 style="margin-top: 0; color: #F57F17;">${CopywritingHelpers.getFixStrategyHeaderText()}</h4>
+                <ul style="margin: 12px 0; padding-left: 20px;">
+                    ${fixListHTML}
+                </ul>
+            </div>
+            `;
+        }
     }
     
     summaryBox.innerHTML = summaryHTML;

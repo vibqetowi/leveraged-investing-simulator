@@ -1,0 +1,1 @@
+index.html is UI -> calculatorhandler handles inputted data and updating the calculaotr -> simulationOrchestrator  creates 1 worker per strategy -> simulationworker.js loads sim.wasm and runs simulation -> results sent back to simulationOrchestrator-> sends stats back to calculatorhandler -> updates UI with help of copywritingHelper.js

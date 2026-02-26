@@ -50,7 +50,7 @@ Open browser console (`F12`) and look for:
 
 ```
 ┌─────────────────────┐
-│   UI (script.js)    │  Main Thread
+│   UI (calculatorhandler)    │  Main Thread
 └──────────┬──────────┘
            │
            ↓
@@ -65,7 +65,7 @@ Open browser console (`F12`) and look for:
            │
            ↓
 ┌─────────────────────┐
-│simulation.worker.js │  Background Thread
+│simulationworker.js │  Background Thread
 └──────────┬──────────┘
            │
            ↓

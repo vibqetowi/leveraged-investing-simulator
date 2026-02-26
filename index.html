@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio LOC Survival Simulator</title>
+    <title>Leveraged Investing Simulator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script>
-    <script src="scripts/copywriting-helpers.js"></script>
+    <script src="scripts/copywritingHelper.js"></script>
     <script defer src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>/* Placeholder for any page-specific overrides */</style>
 </head>
@@ -15,53 +15,49 @@
 
 <div class="container">
     <div class="intro">
-        <h1>Portfolio Line of Credit Strategy Analyzer</h1>
+        <h1>Leveraged Investing Simulator</h1>
 
         <p style="background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ff9800; margin: 20px 0; font-size: 0.95rem;">
-            <strong>Not Financial Advice:</strong> Educational simulation only.
+            <strong>Not Financial Advice:</strong> Educational simulation only. Use of this tool does not constitute financial, investment, legal, or tax advice.
         </p>
         
-        <h3 style="text-align: center; margin-top: 20px; border: none; padding: 0;">What Is a Portfolio Line of Credit?</h3>
+        <h3 style="text-align: center; margin-top: 20px; border: none; padding: 0;">Leverage vs Dollar Cost Averaging</h3>
         <p>
-            When you own stocks or ETFs, some lenders will give you a loan secured by your portfolio. This is called a <strong>Portfolio Line of Credit</strong>.
+            <strong>Leveraged investing</strong> means borrowing money to invest. You get market exposure immediately without waiting to accumulate capital. If markets rise, you profit on borrowed capital. If markets fall, you lose on borrowed capital and still owe interest. Leverage amplifies both gains and losses.
+        </p>
+        <p>
+            <strong>Dollar Cost Averaging (DCA)</strong> means investing a fixed amount from each paycheck. If you only invest from your paycheck, your biggest market exposure happens in your 50s when you've finally accumulated capital.
         </p>
         <p id="intro-paragraph">
-            Investors use Portfolio LOCs because in the long term the stock market returns approximately <strong><span id="growth-rate-intro"></span> per year</strong>, while borrowing costs approximately <strong><span id="interest-rate-intro"></span> (Prime + 1%)</strong> on average. Over <span id="loan-period-intro"></span> years, that <span id="spread-intro-2"></span> spread compounds into substantial portfolio growth if markets rise.
-        </p>
-        <p id="catch-paragraph">
-            The spread accrues only when markets rise. When markets crash, debt obligations remain fixed at <span id="interest-rate-catch"></span> interest while portfolio value shrinks. This <strong>leveraged</strong> strategy amplifies both gains and losses.
+            This simulator compares both strategies. Stock market returns <strong><span id="growth-rate-intro"></span> per year</strong> (S&P 500 historical average 1950-2024). Borrowing costs <strong><span id="interest-rate-intro"></span></strong> (Prime + 1%). The <span id="spread-intro-2"></span> spread accrues on borrowed capital when markets rise. When markets crash, debt costs <span id="interest-rate-catch"></span> while portfolio value falls. Leverage amplifies both gains and losses.
         </p>
 
-            <div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
-                  <h3 style="text-align: center; margin-top: 20px; border: none; padding: 0;">Monthly Payment Allocation Strategy</h3>
-        <p>
-            This calculator assumes you <strong>budget the full amortized payment amount monthly</strong>. You decide how to allocate this amount: toward debt repayment or toward additional investments.
-        </p>
-        <p>
-            <strong>The 50/30/20 Rule:</strong> A common personal finance guideline allocates 50% of income to needs (essentials), 30% to wants (discretionary), and 20% to financial goals (savings, debt repayment, investing). It is generally good practice to allocate more than 20% towards financial goals for younger investors or investors pursuing aggressive strategies like leverage.
-        </p> 
-        <p>
-            The theoretical maximum gain occurs when the full principal and interest are repaid in one payment at the end of the borrowing period. This scenario also presents the highest risk of losing everything in a margin call. 
-        </p>
-       
-       
-    </div>
-        
-       <h3 style="text-align: center; margin-top: 20px; border: none; padding: 0;">How the Comparison Works: Leverage vs. Baseline</h3>
-        <p style="margin: 12px 0; line-height: 1.6;">
-            Comparing leverage to a baseline determines whether it generates sufficient returns per unit of risk. This calculator tests both paths side-by-side:
-        </p>
-        <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
-            <li><strong>Leveraged Path (Your Strategy):</strong> You take a loan and invest it. These simulations test whether leverage amplifies gains when debt is serviced at various monthly payment levels.</li>
-            <li><strong>Baseline (No Debt):</strong> The baseline excludes borrowing and assumes you invest the full budgeted amount into the market each month. </li>
-        </ul>
-
-         <p id="simulation-description">
-            This calculator tests <strong><span id="num-strategies"></span> different payment strategies</strong> across <strong><span id="base-simulations"></span> different market scenarios</strong>. From these simulations, it builds a probability distribution: what percentage of outcomes result in ruin, what percentage result in underperformance, and what percentage result in profit. </p>
-
+        <div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
+            <h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">Capital Neutrality</h3>
             <p>
-            
-            This distribution helps answer questios such as: <strong>Should leverage be deployed? At what loan-to-value ratio? With what monthly payment amount?</strong>
+                The simulator assumes <strong>capital neutrality</strong>: your monthly budget either services debt or invests in the market. No third option.
+            </p>
+            <p>
+                You set a monthly budget (e.g., $200). The simulator tests payment strategies from minimum required to maximum budget. Pay $80 toward debt? The remaining $120 invests that month. Pay $200 toward debt? $0 invests. The total monthly allocation stays constant.
+            </p>
+        </div>
+        
+ 
+ <h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">Two Reasons to Use Leverage</h3>
+            <p>
+                <strong>Risk-Shifting:</strong> Borrow once when young, invest immediately, pay back over time. This shifts market exposure forward in time, instead of concentrating exposure in your 50s (when DCA finally accumulates capital). Generally reduces risk by giving you more time to recover from downturns.
+            </p>
+            <p>
+                Evaluation: If profit probability slightly exceeds underperformance probability, risk-shifting succeeded (marginally 50-50). Ruin probability must remain below 2%.
+            </p>
+            <p>
+                <strong>Margin:</strong> Continuously borrow to maintain a target leverage ratio as your portfolio grows. The goal is amplifying returns. Higher risk, higher potential reward. Requires maintaining debt indefinitely.
+            </p>
+            <p>
+                Evaluation: Profit probability must significantly exceed combined underperformance + ruin probability to justify persistent leverage costs and liquidation risk. Professionals usually aim for a < 20% probability spread.
+            </p>
+        <p style="margin: 12px 0; line-height: 1.6;">
+            The simulator runs thousands of market scenarios for each payment strategy to determine outcome probabilities: ruin, underperformance, or outperformance.
         </p>
 
 
@@ -207,12 +203,22 @@
     <div id="results">
         <div id="summary" class="summary-box"></div>
         
-        <!-- Interactive Slider for Strategy Exploration -->
+
+                <!-- Histogram Chart -->
+        <div id="histogramChart"></div>
+        
+        <!-- Deposits Over Time Line Chart -->
+        <div id="depositsLineChart"></div>
+
+                <!-- Interactive Slider for Strategy Exploration -->
         <div class="slider-container">
             <h3 style="margin-top: 0; border: none;">Explore Payment Strategies</h3>
             <p style="margin-bottom: 16px; font-size: 0.9rem;">
-                Adjust the slider to test different monthly payment strategies. Each position represents a percentage of the full amortization payment. Percentages above 100% exceed budget allocation.
-            </p>
+                    <strong>💡 How to Use the Slider:</strong> Adjust the monthly payment to see how paying down debt faster shifts the probabilities of profiting. Compare the three-zone grid below to find your optimal strategy.
+                      </p>
+                    
+                    <p>  Each position represents a percentage of the full amortization payment. Percentages above 100% amortization mean you pay off the loan early.</p>
+          
             <div class="slider-labels">
                 <span>Min Payment (Aggressive)</span>
                 <span>Monthly Budget (Conservative)</span>
@@ -220,20 +226,11 @@
             <input type="range" id="strategySlider" class="strategy-slider" min="0" max="19" step="1" value="0">
 
             <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196F3; font-size: 0.85rem; color: #555;">
-                <p style="margin: 0 0 8px 0;">
-                    <strong>💡 How to Use the Slider:</strong> Adjust the monthly payment to see how paying down debt faster shifts the probabilities of profiting. Compare the three-zone grid below to find your optimal strategy.
-                </p>
                 <p style="margin: 0;">
                     <strong>Payment Reference:</strong> You are paying <strong><span id="selectedPaymentAmount">$0</span>/month</strong>, which is <strong><span id="paymentPercentAmortization">0</span>%</strong> of amortization and <strong><span id="paymentPercentBudget">0</span>%</strong> of your monthly budget.
                 </p>
             </div>
         </div>
-
-                <!-- Histogram Chart -->
-        <div id="histogramChart"></div>
-        
-        <!-- Deposits Over Time Line Chart -->
-        <div id="depositsLineChart"></div>
         
         <!-- Dynamic Strategy Summary -->
         <div id="dynamicSummary" class="strategy-summary"></div>
@@ -261,12 +258,23 @@
         <h3>How This Calculator Works</h3>
         
         <p id="monte-carlo-intro">
-            This tool uses <strong>Monte Carlo simulation</strong> combined with <strong>Present Value of Annuity</strong> principles to stress-test a Portfolio LOC strategy across <span id="sim-count-method"></span> different market scenarios.
+            This tool uses <strong>Monte Carlo simulation</strong> with <strong>geometric Brownian motion</strong> to test leveraged investing strategies across <span id="sim-count-method"></span> randomized market scenarios per strategy.
+        </p>
+
+        <h4 style="margin: 20px 0 10px 0;">Step 0: Capital Neutrality Assumption</h4>
+        <p>
+            The simulator enforces capital neutrality: your monthly budget either services debt or invests in the market. The budget cannot sit in cash.
+        </p>
+        <p>
+            You specify a monthly budget (e.g., $200). The simulator tests payment strategies from minimum required to maximum budget. For a strategy paying $80/month toward debt, the remaining $120 invests in the market that month. For a strategy paying $200/month toward debt, $0 invests.
+        </p>
+        <p>
+            This assumption reflects the purpose of leverage: deploying capital to markets immediately via borrowed funds rather than waiting to accumulate it gradually from income.
         </p>
 
         <h4 style="margin: 20px 0 10px 0;">Step 1: Calculate the Amortized Payment</h4>
         <p>
-            First, the "correct" monthly payment is determined to reduce the loan to exactly $0 at the end of the holding period:
+            The amortized payment is the fixed monthly payment that reduces the loan to $0 at the end of the period:
         </p>
         <div class="formula">
             P = L × [r(1+r)^n] / [(1+r)^n - 1]<br><br>
@@ -277,127 +285,129 @@
             n = Total number of months
         </div>
         <p style="font-size: 0.9rem; color: #666;">
-            This is the standard amortization formula. Paying this amount every month amortizes the loan to $0.
+            This is the standard amortization formula. Paying this amount every month amortizes the loan to $0 by the final month.
         </p>
 
         <h4 style="margin: 20px 0 10px 0;">Step 2: Test <span id="num-strategies-step2"></span> Payment Strategies</h4>
         <p id="methodology-step2-text">
-            Testing replaces arbitrary selection. We evaluate <span id="num-strategies-step2-2"></span> different payment strategies, ranging from minimum payment to the monthly budget. Each strategy occupies a discrete position on the risk-reward spectrum. Low-payment strategies employ high leverage; high-payment strategies accelerate debt reduction.
+            The simulator tests <span id="num-strategies-step2-2"></span> payment strategies from minimum payment to monthly budget. Each strategy represents a point on the leverage spectrum: low payment = high leverage; high payment = rapid debt paydown.
         </p>
 
-        <h4 style="margin: 20px 0 10px 0;">Step 3: Run <span id="sim-count-step3"></span> Market Scenarios (Plus <span id="baseline-sims-step3"></span> for Benchmark)</h4>
+        <h4 style="margin: 20px 0 10px 0;">Step 3: Run <span id="sim-count-step3"></span> Market Scenarios per Strategy</h4>
         <p id="methodology-step3-text">
-            For each payment strategy, we simulate <span id="sim-count-step3-2"></span> different market paths. For the benchmark (no-debt baseline), I run <span id="baseline-sims-step3-2"></span> simulations for better statistical accuracy. 
+            For each payment strategy, the simulator runs <span id="sim-count-step3-2"></span> randomized market scenarios. For the baseline (DCA with no borrowing), it runs <span id="baseline-sims-step3-2"></span> scenarios for higher statistical precision.
         </p>
         <p>
-            Each simulation uses <strong>geometric Brownian motion</strong>—the mathematical model describing how stock prices move in continuous time. In practical terms: each month, the program generates a market return stochastically, updates portfolio value, applies your payment, and compounds interest on remaining debt.
+            Each simulation models monthly market returns using <strong>geometric Brownian motion</strong>. Each month: generate a stochastic return, update portfolio value, apply debt payment, invest surplus budget, compound interest on remaining debt.
         </p>
         <div class="formula">
             Monthly Return = exp[(μ - 0.5σ²) × (1/12) + σ√(1/12) × Z]<br><br>
             Where:<br>
-            <span id="formula-params">μ = Expected annual growth rate (<span id="growth-formula"></span> in Standard Mode)<br>
-            σ = Volatility / standard deviation (<span id="volatility-formula"></span> in Standard Mode)<br>
-            Z = Random normal variable (simulates market surprises)</span>
+            <span id="formula-params">μ = Expected annual growth rate (<span id="growth-formula"></span> in Standard Mode = S&P 500 historical average 1950-2024)<br>
+            σ = Volatility / standard deviation (<span id="volatility-formula"></span> in Standard Mode = S&P 500 typical volatility)<br>
+            Z = Random normal variable (models market uncertainty)</span>
         </div>
         <p style="font-size: 0.9rem; color: #666;">
-            This is the same model used by Wall Street quants. It captures the reality that annual market returns include years with +30% returns and years with -20% returns, distributed around an average of +<span id="growth-avg"></span>.
+            This model generates realistic return distributions: some years +30%, some years -20%, clustering around the historical average of <span id="growth-avg"></span>. This is the same framework used in quantitative finance for option pricing and risk modeling.
         </p>
 
-        <h4 style="margin: 20px 0 10px 0;">Step 4: Check for Margin Call</h4>
+        <h4 style="margin: 20px 0 10px 0;">Step 4: Check for Forced Liquidation</h4>
         <p id="margin-call-step4">
-            Lenders enforce maximum Loan-to-Value ratios. When debt exceeds this threshold relative to portfolio value, the lender executes forced liquidation to reduce risk. In Standard Mode, this threshold is <span id="margin-call-step4-val"></span> LTV. 
+            Lenders enforce maximum Loan-to-Value ratios. When debt exceeds this threshold relative to portfolio value, the lender executes forced liquidation. In Standard Mode, this threshold is <span id="margin-call-step4-val"></span> LTV.
         </p>
         <p id="margin-call-followup">
-            If your debt ratio exceeds <span id="margin-call-followup-val"></span> of portfolio value at any point, the lender executes forced liquidation: your positions are sold, the lender recovers the debt, and your account balance becomes $0. The calculator tracks survival rate—the percentage of <span id="sim-count-margin"></span> simulations where liquidation does not occur.
+            If debt ratio exceeds <span id="margin-call-followup-val"></span> at any point, forced liquidation occurs: lender sells positions, recovers debt, account balance becomes $0. Survival rate = percentage of <span id="sim-count-margin"></span> simulations avoiding liquidation.
         </p>
         <p style="font-size: 0.9rem; color: #666;" id="margin-call-note">
-            <span id="margin-call-note-val"></span> LTV is conservative relative to market-based lender thresholds. Lender thresholds range from 40-50% (conservative) to 75-80% (aggressive). Custom Mode permits threshold modification.
+            <span id="margin-call-note-val"></span> LTV is conservative. Lender thresholds range from 40-50% (conservative) to 75-80% (aggressive). Custom Mode permits threshold adjustment.
         </p>
 
-        <h4 style="margin: 20px 0 10px 0;">Step 5: Calculate Real Wealth (Adjusted for Inflation)</h4>
+        <h4 style="margin: 20px 0 10px 0;">Step 5: Calculate Real Wealth (Inflation-Adjusted)</h4>
         <p>
-            For scenarios in which liquidation does not occur, the final portfolio value converts to inflation-adjusted dollars. All wealth results display in present-day purchasing power. 
+            For simulations avoiding liquidation, the final portfolio value converts to inflation-adjusted dollars using the specified inflation rate. All wealth values display in today's purchasing power.
         </p>
         <p id="inflation-example">
-            For example, if your portfolio grows to $1M in <span id="loan-period-inflation"></span> years but inflation is <span id="inflation-rate-example"></span> per year, that $1M in the future equals less purchasing power in today's dollars. This calculator converts all final wealth to current purchasing power.
+            If a portfolio reaches $1M in <span id="loan-period-inflation"></span> years with <span id="inflation-rate-example"></span> annual inflation, that future $1M equals less purchasing power than today's $1M. This calculator converts all final wealth to current purchasing power for valid comparison.
         </p>
         <div class="formula">
             Real Wealth = Nominal Wealth / (1 + Inflation Rate)^Years
         </div>
         <p style="font-size: 0.9rem; color: #666;">
-            This conversion is essential for valid comparison. If both strategies generate similar nominal returns but one carries leverage risk, the real return per unit of risk differs significantly.
+            Inflation adjustment is required for valid comparison. Without adjustment, strategies appear more profitable than they are in real purchasing power terms.
         </p>
 
         <h3 style="margin-top: 30px;">Standard Mode Assumptions: Conservative Baseline Parameters</h3>
         <p>
-            Standard Mode uses research-backed defaults. These parameters bias toward risk reduction rather than return maximization:
+            Standard Mode uses research-backed defaults biased toward risk reduction:
         </p>
         <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;" id="standard-assumptions-list">
-            <li><strong>Interest Rate: <span id="interest-assumptions"></span></strong> — This assumes Canadian Prime Rate stays around 6% plus a 1% lender spread. It's higher than current rates (early 2026), so it accounts for rate increases over your <span id="loan-period-assumptions"></span>-year period.</li>
-            <strong>Market Growth: <span id="growth-assumptions"></span> per year</strong> — Historical average for the S&P 500 from 1950-2024. This is the long-term mean, not the best-case scenario. Annual returns cluster around this mean with typical annual variation of approximately ±15%.
-            <li><strong>Volatility: <span id="volatility-assumptions"></span> per year</strong> — Standard deviation of annual S&P 500 returns. Annual returns distribute around zero mean with ±15% typical range. This captures realized portfolio swings from market cycle behavior.</li>
-            <li><strong>Margin Call Threshold: <span id="margin-assumptions"></span> LTV</strong> — Conservative. Different lenders enforce 40-80% LTV depending on their risk appetite. At <span id="margin-assumptions-2"></span>, the lender protects themselves earlier, which means higher probability of liquidation if markets decline.</li>
-            <li><strong>Inflation: <span id="inflation-assumptions"></span> per year</strong> — Long-term average U.S. inflation. All final wealth figures convert to "today's dollars" using this rate.</li>
-            <li><strong>Monthly Payment: <span id="payment-assumptions"></span> of Amortized</strong> (auto-calculated) — Default starting point. At <span id="payment-assumptions-2"></span> amortization, principal decreases slowly; this strategy prioritizes leverage over debt reduction. This starting point allows exploration of the debt-reduction tradeoff.</li>
+            <li><strong>Interest Rate: <span id="interest-assumptions"></span></strong> — Canadian Prime Rate ~6% plus 1% lender spread. Higher than early-2026 rates to account for potential rate increases over <span id="loan-period-assumptions"></span>-year period.</li>
+            <li><strong>Market Growth: <span id="growth-assumptions"></span> per year</strong> — S&P 500 historical average 1950-2024. This is the long-term mean. Annual returns cluster around <span id="growth-assumptions-2"></span> with typical variation of ±15%.</li>
+            <li><strong>Volatility: <span id="volatility-assumptions"></span> per year</strong> — S&P 500 standard deviation. Annual returns distribute around the mean with this volatility, capturing observed market cycle behavior.</li>
+            <li><strong>Margin Call Threshold: <span id="margin-assumptions"></span> LTV</strong> — Conservative. Lenders enforce 40-80% LTV ratios. <span id="margin-assumptions-2"></span> protects lenders earlier, increasing liquidation probability during market declines.</li>
+            <li><strong>Inflation: <span id="inflation-assumptions"></span> per year</strong> — Long-term U.S. average. All final wealth converts to today's purchasing power using this rate.</li>
+            <li><strong>Monthly Payment: <span id="payment-assumptions"></span> of Amortized</strong> — Default starting point. <span id="payment-assumptions-2"></span> amortization pays principal slowly, prioritizing leverage over debt reduction. Starting point for exploring the tradeoff.</li>
         </ul>
         <p style="font-size: 0.9rem; color: #666;">
-            These assumptions derive from conservative long-term historical averages. Custom Mode permits adjustment of parameters when prior analysis indicates different inputs.
+            These parameters derive from long-term historical data. Custom Mode permits parameter adjustment based on specific lending terms or market assumptions.
         </p>
 
         <h3 style="margin-top: 30px;">The Three Outcomes: Ruin, Sucker, Profit</h3>
         <p>
-            Every simulation outcome falls into one of three mutually exclusive categories. The distribution across these categories determines whether leverage generates sufficient returns per unit of risk:
+            Every simulation classifies into one of three mutually exclusive categories:
         </p>
         <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
-            <li id="ruin-outcome"><strong>Ruin (Red):</strong> Either (1) your account hit the <span id="margin-ruin"></span> margin call threshold and was liquidated, or (2) you ended with less wealth than your initial equity.</li>
-            <li><strong>Sucker (Orange):</strong> You avoided liquidation but are unlikely to turn a profit.</li>
-            <li id="profit-outcome"><strong>Profit (Green):</strong> You survived without liquidation, and are likely to earn more than you would have without leverage.</li>
+            <li id="ruin-outcome"><strong>Ruin (Red):</strong> Account hit <span id="margin-ruin"></span> forced liquidation threshold, or ended with less wealth than initial equity.</li>
+            <li><strong>Sucker (Orange):</strong> Avoided liquidation but underperformed the DCA baseline. Took risk, paid interest, gained nothing.</li>
+            <li id="profit-outcome"><strong>Profit (Green):</strong> Avoided liquidation and outperformed the DCA baseline. Leverage generated positive excess return after borrowing costs and risk.</li>
         </ul>
         <p style="font-size: 0.9rem; color: #666;">
-            Distribution across these three categories is non-uniform and depends entirely on payment strategy. Lower monthly payments increase ruin probability but also increase profit probability if liquidation is avoided. Higher monthly payments reduce ruin probability at the cost of reduced profit probability. The optimal payment strategy balances ruin risk reduction against profit probability maximization. When ruin risk exceeds defined thresholds, the analysis indicates borrowing reduction.
+            <strong>Risk-Shifting:</strong> The spread between Profit and Sucker percentages indicates whether risk-shifting succeeded. A 60/40 split indicates leverage shifted market exposure forward successfully. A 51/49 split indicates minimal improvement over DCA. Ruin probability must remain below 2%.
+        </p>
+        <p style="font-size: 0.9rem; color: #666;">
+            <strong>Margin:</strong> Profit percentage must significantly exceed Sucker + Ruin combined to justify continuous leverage. Higher thresholds apply because margin maintains persistent leverage.
         </p>
 
         <h3 style="margin-top: 30px;">Model Limitations</h3>
         <p>
-            This calculator is a simplified simulation. It does <strong>not</strong> account for several real-world factors:
+            This calculator models idealized conditions. Real-world factors not modeled:
         </p>
         <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
-            <li><strong>Taxes:</strong> Capital gains taxes, dividend taxes, and interest deductibility are not modeled. Tax treatment varies by jurisdiction and can significantly reduce actual returns.</li>
-            <li><strong>Inflation:</strong> Outputs convert to real dollars using a constant inflation rate assumption. Actual inflation rates are volatile; this model treats inflation as constant, which understates purchasing power variance.</li>
-            <li><strong>Variable Interest Rates:</strong> We assume a fixed borrowing rate throughout the simulation. In reality, rates fluctuate with central bank policy and economic conditions.</li>
-            <li><strong>Fees & Transaction Costs:</strong> Management fees, trading commissions, bid-ask spreads, and other transaction costs are not included.</li>
-            <li><strong>Market Regime Changes:</strong> The model assumes returns follow a consistent distribution. Real markets experience structural shifts, prolonged bear markets, and black swan events.</li>
-            <li><strong>Behavioral Factors:</strong> Panic-selling during downturns, inability to maintain payments during job loss, or psychological stress from leverage are not modeled.</li>
-            <li><strong>Sequence of Returns Risk:</strong> The order in which returns occur matters significantly. A large loss early on is much more damaging than the same loss later, even with identical average returns.</li>
+            <li><strong>Taxes:</strong> Capital gains taxes, dividend taxes, interest deductibility not modeled. Tax treatment varies by jurisdiction and can significantly impact returns.</li>
+            <li><strong>Variable Interest Rates:</strong> Model assumes fixed borrowing rate. Real rates fluctuate with central bank policy and credit conditions.</li>
+            <li><strong>Fees & Transaction Costs:</strong> Management fees, trading commissions, bid-ask spreads excluded.</li>
+            <li><strong>Market Regime Changes:</strong> Model assumes returns follow consistent distribution. Real markets experience structural shifts, prolonged bear markets, black swan events.</li>
+            <li><strong>Behavioral Factors:</strong> Panic-selling during downturns, inability to maintain payments during job loss, psychological stress not modeled.</li>
+            <li><strong>Sequence of Returns Risk:</strong> Order of returns matters. Early large losses damage outcomes more than late losses with identical average returns.</li>
         </ul>
         <p style="font-size: 0.9rem; color: #666;">
-            <strong>Bottom line:</strong> This tool shows mathematical probabilities under idealized conditions, not guarantees. Real-world investing involves significantly more complexity and uncertainty.
+            <strong>Legal Disclaimer:</strong> This tool displays mathematical probabilities under simplified assumptions. Results do not constitute predictions, guarantees, or recommendations. Real-world investing involves significantly more complexity and uncertainty. Losses may exceed invested capital. Consult licensed financial advisors before making investment decisions.
         </p>
 
-        <h3 style="margin-top: 30px;">Understanding the Economic Theory (Plain English)</h3>
+        <h3 style="margin-top: 30px;">Understanding the Economic Theory</h3>
         
         <div class="reference" id="reference-leverage">
-            <strong>Leverage & The Spread:</strong> The fundamental idea behind Portfolio LOCs is <strong>positive carry</strong>. If you borrow at <span id="interest-reference-1"></span> and invest at <span id="growth-reference-1"></span>, you keep <span id="spread-reference-1"></span> on borrowed capital. Read more: <a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Investopedia's carry trade explanation</a>. The catch: this only works if markets go up. In down markets, you're paying <span id="interest-reference-1b"></span> on a shrinking asset base—the exact opposite dynamic.
+            <strong>Leverage & The Spread:</strong> Leveraged investing depends on <strong>positive carry</strong>: borrowing at <span id="interest-reference-1"></span> to invest at <span id="growth-reference-1"></span> captures the <span id="spread-reference-1"></span> spread on borrowed capital. See <a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Investopedia's carry trade explanation</a>. The spread accrues only when markets rise. In market declines, debt costs <span id="interest-reference-1b"></span> while asset value falls—reversing the dynamic.
         </div>
         
         <div class="reference" id="reference-time-value">
-            <strong>Time Value of Money & Loan Amortization:</strong> When you borrow $100,000 over <span id="loan-period-reference-2"></span> years at <span id="interest-reference-2"></span>, there's a specific monthly payment that makes sense: <a href="https://www.investopedia.com/terms/a/amortization.asp" target="_blank">Investopedia's amortization guide</a> explains the math. The formula we use calculates that "fair" payment. Paying less means you're extending the debt; paying more means you're paying it off faster.
+            <strong>Time Value of Money & Loan Amortization:</strong> Borrowing $100,000 over <span id="loan-period-reference-2"></span> years at <span id="interest-reference-2"></span> has a specific monthly payment that amortizes the loan to $0. See <a href="https://www.investopedia.com/terms/a/amortization.asp" target="_blank">Investopedia's amortization guide</a>. Paying less extends the debt; paying more accelerates payoff.
         </div>
         
         <div class="reference">
-            <strong>How Modern Finance Models Markets: Geometric Brownian Motion:</strong> Stock prices exhibit non-linear behavior in continuous time. The standard mathematical model is <a href="https://www.investopedia.com/terms/g/geometric-brownian-motion.asp" target="_blank">geometric Brownian motion</a>, formally defined as a random walk with drift parameter. The Black-Scholes option-pricing model uses this framework. The GBM formula maintains boundary conditions: losses are capped at -100%, upside is theoretically unlimited, and volatility compounds naturally.
+            <strong>Geometric Brownian Motion:</strong> Stock price modeling uses <a href="https://www.investopedia.com/terms/g/geometric-brownian-motion.asp" target="_blank">geometric Brownian motion</a>—a random walk with drift. The Black-Scholes option pricing model uses this framework. GBM maintains boundary conditions: losses capped at -100%, upside theoretically unlimited, volatility compounds naturally.
         </div>
         
         <div class="reference">
-            <strong>Monte Carlo Simulation: Outcome Distribution Through Randomized Scenario Testing:</strong> This calculator generates distributions of possible outcomes by running the scenario thousands of times with randomized market variations. <a href="https://www.britannica.com/technology/Monte-Carlo-method" target="_blank">Britannica</a> and <a href="https://www.khanacademy.org/economics-finance-domain/core-finance/interest-debt/pq-mnt-wealth/a/monte-carlo-simulation" target="_blank">Khan Academy</a> explain the concept: the method reveals what distribution of outcomes emerges under varied conditions. NASA, insurance companies, and hedge funds use this approach for stress-testing models and understanding ranges of probabilities rather than attempting point prediction.
+            <strong>Monte Carlo Simulation:</strong> Generates outcome distributions by running scenarios thousands of times with randomized market variations. See <a href="https://www.britannica.com/technology/Monte-Carlo-method" target="_blank">Britannica</a> and <a href="https://www.khanacademy.org/economics-finance-domain/core-finance/interest-debt/pq-mnt-wealth/a/monte-carlo-simulation" target="_blank">Khan Academy</a>. NASA, insurance companies, and hedge funds use this for stress-testing and understanding probability ranges rather than point prediction.
         </div>
         
         <div class="reference" id="reference-margin-call">
-            <strong>Margin Calls & Forced Liquidation:</strong> When borrowing against a portfolio, the lender enforces a maximum Loan-to-Value ratio. Read <a href="https://www.investopedia.com/terms/m/margincall.asp" target="_blank">Investopedia's margin call explanation</a>. When the ratio is breached, the lender executes forced liquidation: your positions are sold, the debt is repaid from proceeds, and remaining assets transfer to your account. This mechanism occurred during 2008 and 2020 market downturns. Standard Mode uses <span id="margin-reference-4"></span> LTV as a conservative threshold; mortgage lenders range from 40-50% (conservative) to 75-80% (aggressive).
+            <strong>Margin Calls & Forced Liquidation:</strong> Lenders enforce maximum Loan-to-Value ratios. See <a href="https://www.investopedia.com/terms/m/margincall.asp" target="_blank">Investopedia's margin call explanation</a>. Breaching the ratio triggers forced liquidation: positions sold, debt repaid from proceeds. This occurred during 2008 and 2020. Standard Mode uses <span id="margin-reference-4"></span> LTV; lender thresholds range 40-50% (conservative) to 75-80% (aggressive).
         </div>
         
         <div class="reference" id="reference-inflation">
-            <strong>Real vs. Nominal Returns—Inflation Adjustment:</strong> A $1M portfolio in the future has different purchasing power than $1M in current dollars. If inflation is <span id="inflation-rate-example"></span> per year for <span id="loan-period-reference-5"></span> years, future $1M equals current $<span id="pv-calc-result">750</span>K in purchasing power. This calculator converts all results to current purchasing power using the specified inflation rate. <a href="https://www.investopedia.com/terms/r/realinterestrate.asp" target="_blank">Investopedia on real interest rates</a> explains the concept applied to debt. For wealth: <a href="https://www.khanacademy.org/economics-finance-domain/macroeconomics/aggregate-demand-supply/inflation-tutorial/v/inflation-and-real-return" target="_blank">Khan Academy's inflation and real return video</a> walks through it step-by-step.
+            <strong>Real vs. Nominal Returns:</strong> Future dollars have different purchasing power than current dollars. This calculator converts all results to current purchasing power using the specified inflation rate. See <a href="https://www.investopedia.com/terms/r/realinterestrate.asp" target="_blank">Investopedia on real interest rates</a> and <a href="https://www.khanacademy.org/economics-finance-domain/macroeconomics/aggregate-demand-supply/inflation-tutorial/v/inflation-and-real-return" target="_blank">Khan Academy's inflation and real return video</a>.
         </div>
     </div>
 
@@ -505,7 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script src="scripts/integration.js"></script>
-<script src="scripts/script.js"></script>
+<script src="scripts/calculatorHandler.js"></script>
+<script src="scripts/simulationOrchestrator.js"></script>
 </body>
 </html>

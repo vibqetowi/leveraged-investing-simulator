@@ -1,9 +1,5 @@
 /**
- * Integration Helper for WebAssembly Migration
- * 
- * This module provides functions to help integrate the new WebAssembly adapter
- * with the existing UI code, allowing for gradual migration.
- */
+ * this creates one worker per required strategy and configures them with the proper inputs
 
 /**
  * Extract UI inputs in format expected by both old and new simulation engines
@@ -71,81 +67,6 @@ function getSimulationInputs() {
  * - Index 0: T=0 (initial state)
  * - Indices 1 to months: T=1 to T=months (monthly values)
  */
-function generateCashFlowSchedule(loanAmount, monthlyRate, payment, monthlyBudget, months) {
-    let currentDebt = loanAmount;
-    const debtPath = [loanAmount];  // T=0: initial debt
-    const depositPath = [0];  // T=0: no deposits at initial time (capital already in assets)
-
-    for (let t = 1; t <= months; t++) {
-        if (currentDebt > 0) {
-            const interest = currentDebt * monthlyRate;
-            const principalReduction = payment - interest;
-            
-            // Force payoff at final month OR when payment covers remaining debt
-            if (t === months || principalReduction >= currentDebt) {
-                // Final payoff: must liquidate all remaining debt
-                const actualPaymentNeeded = currentDebt + interest;
-                const surplusThisMonth = monthlyBudget - actualPaymentNeeded;
-                depositPath.push(surplusThisMonth); // Can be negative if budget insufficient
-                currentDebt = 0;
-            } else {
-                // Normal month: principal is reduced, debt continues
-                currentDebt -= principalReduction;
-                depositPath.push(monthlyBudget - payment);
-            }
-        } else {
-            // Debt already paid off: entire budget is a deposit
-            depositPath.push(monthlyBudget);
-        }
-        
-        // Record debt balance at end of this month
-        debtPath.push(Math.max(0, currentDebt));
-    }
-    
-    return { debtPath, depositPath };
-}
-
-/**
- * Generate schedules for all strategies (benchmark + leveraged)
- * Returns array of schedule objects indexed by strategy
- * Each schedule now includes T=0 as the first element (months+1 total)
- */
-function generateAllSchedules(inputs) {
-    const schedules = [];
-    const mRate = inputs.interestRate / 12;
-    
-    // Benchmark schedule: no debt, just full budget deposits
-    // Now includes T=0 element (months+1 total elements)
-    const benchmarkDeposits = [0]; // T=0: no initial deposit
-    const benchmarkDebt = [0];     // T=0: no initial debt
-    for (let month = 1; month <= inputs.months; month++) {
-        benchmarkDeposits.push(inputs.monthlyBudget);
-        benchmarkDebt.push(0);
-    }
-    schedules.push({ debtPath: benchmarkDebt, depositPath: benchmarkDeposits });
-    
-    // Leveraged strategy schedules
-    const minPaymentPercent = (inputs.minPayment / inputs.maxPayment) * 100;
-    const stepSize = (100 - minPaymentPercent) / (inputs.numStrategies);
-    
-    for (let i = 0; i < inputs.numStrategies; i++) {
-        const percentOfMax = minPaymentPercent + (i * stepSize);
-        const paymentAmount = (percentOfMax / 100) * inputs.maxPayment;
-        
-        const schedule = generateCashFlowSchedule(
-            inputs.loanAmount,
-            mRate,
-            paymentAmount,
-            inputs.monthlyBudget,
-            inputs.months
-        );
-        
-        schedules.push(schedule);
-    }
-    
-    return schedules;
-}
-
 /**
  * Check if WebAssembly is supported
  */
@@ -214,7 +135,7 @@ async function runSimulationWithAdapter() {
         const promises = [];
         
         for (let i = 0; i < 21; i++) {
-            const worker = new Worker('scripts/simulation.worker.js', { 
+            const worker = new Worker('scripts/simulationworker.js', { 
                 name: `strategy-${i}` 
             });
             workers.push(worker);
@@ -348,6 +269,13 @@ function aggregateWorkerResults(workerResults, uiInputs, totalTime) {
             strategy.benchmarkMedian = aggregated.benchmark.medianWealth;
             strategy.benchmarkExpected = aggregated.benchmark.expectedWealth;
             strategy.benchmarkSigma = calculateStdDev(aggregated.benchmark.finalWealthArray, aggregated.benchmark.expectedWealth);
+            
+            // Calculate trinary stats (Ruin/Sucker/Profit) for UI display
+            strategy.trinaryStats = calculateTrinaryStatsForStrategy(
+                strategy,
+                aggregated.loanDetails.initialEquity,
+                UI_CONSTANTS.SIMULATION_COUNT
+            );
         }
     }
     
@@ -420,6 +348,49 @@ function calculateStdDev(array, mean) {
 }
 
 /**
+ * Calculate Trinary Outcome Statistics for a Strategy
+ * Categorizes outcomes into: Ruin, Sucker, Profit
+ * 
+ * Ruin: Margin call (wealth = $0) OR ended with wealth < initial equity
+ * Profit: Survived AND final wealth > benchmark median
+ * Sucker: Survived AND initial equity <= wealth <= benchmark median
+ */
+function calculateTrinaryStatsForStrategy(strategy, initialEquity, totalSimulations) {
+    const leveragedWealths = strategy.finalWealthArray;
+    const benchmarkMedian = strategy.benchmarkMedian;
+    
+    const survivors = leveragedWealths.length;
+    const marginCalls = totalSimulations - survivors;
+    
+    // RUIN: Margin call OR ended with less than initial equity
+    const lostMoney = leveragedWealths.filter(w => w < initialEquity).length;
+    const ruinCount = marginCalls + lostMoney;
+    const ruinPercent = (ruinCount / totalSimulations) * 100;
+    
+    // Among survivors who didn't lose money, categorize by benchmark comparison
+    const profitSurvivors = leveragedWealths.filter(w => w >= initialEquity && w > benchmarkMedian).length;
+    const suckerSurvivors = leveragedWealths.filter(w => w >= initialEquity && w <= benchmarkMedian).length;
+    
+    // PROFIT: Survived with profit AND outperformed benchmark
+    const profitPercent = (profitSurvivors / totalSimulations) * 100;
+    
+    // SUCKER: Survived with profit BUT underperformed benchmark
+    const suckerPercent = (suckerSurvivors / totalSimulations) * 100;
+    
+    return {
+        ruinPercent: Math.max(0, ruinPercent),
+        suckerPercent: Math.max(0, suckerPercent),
+        profitPercent: Math.max(0, profitPercent),
+        ruinCount: ruinCount,
+        profitCount: profitSurvivors,
+        suckerCount: suckerSurvivors,
+        totalSims: totalSimulations,
+        calculationTotal: ruinPercent + suckerPercent + profitPercent  // Should equal 100 (for verification)
+    };
+}
+
+
+/**
  * Fallback JavaScript implementation
  * This keeps the original algorithm for browsers without Wasm support
  */
@@ -427,7 +398,7 @@ function runSimulationJS(inputs) {
     console.warn('[Integration] Using legacy JavaScript simulation (slower)');
     
     // Call the original runSimulation function
-    // This is preserved in script.js as runSimulationLegacy
+    // This is preserved in calculatorhandler as runSimulationLegacy
     if (typeof runSimulationLegacy === 'function') {
         return runSimulationLegacy();
     } else {
@@ -435,7 +406,7 @@ function runSimulationJS(inputs) {
     }
 }
 
-// Export for use in script.js
+// Export for use in calculatorhandler
 if (typeof window !== 'undefined') {
     window.getSimulationInputs = getSimulationInputs;
     window.isWasmAvailable = isWasmAvailable;

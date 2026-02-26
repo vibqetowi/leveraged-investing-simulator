@@ -135,7 +135,7 @@ async function runSimulationWithAdapter() {
         const promises = [];
         
         for (let i = 0; i < 21; i++) {
-            const worker = new Worker('scripts/simulationworker.js', { 
+            const worker = new Worker('scripts/simulationWorker.js', { 
                 name: `strategy-${i}` 
             });
             workers.push(worker);

@@ -21,49 +21,156 @@
             <strong>Not Financial Advice:</strong> Educational simulation only. Use of this tool does not constitute financial, investment, legal, or tax advice.
         </p>
         
-        <h3 style="text-align: center; margin-top: 20px; border: none; padding: 0;">Leverage vs Dollar Cost Averaging</h3>
-        <p>
-            <strong>Leveraged investing</strong> means borrowing money to invest. You get market exposure immediately without waiting to accumulate capital. If markets rise, you profit on borrowed capital. If markets fall, you lose on borrowed capital and still owe interest. Leverage amplifies both gains and losses.
-        </p>
-        <p>
-            <strong>Dollar Cost Averaging (DCA)</strong> means investing a fixed amount from each paycheck. If you only invest from your paycheck, your biggest market exposure happens in your 50s when you've finally accumulated capital.
-        </p>
-        <p id="intro-paragraph">
-            This simulator compares both strategies. Stock market returns <strong><span id="growth-rate-intro"></span> per year</strong> (S&P 500 historical average 1950-2024). Borrowing costs <strong><span id="interest-rate-intro"></span></strong> (Prime + 1%). The <span id="spread-intro-2"></span> spread accrues on borrowed capital when markets rise. When markets crash, debt costs <span id="interest-rate-catch"></span> while portfolio value falls. Leverage amplifies both gains and losses.
-        </p>
+<h3 style="text-align: center; margin-top: 20px; border: none; padding: 0;">What Would the Perfect Wealth Strategy Look Like?</h3>
+<p>
+    If I was designing the ideal long-term wealth accumulation strategy from scratch, I would want four things:
+</p>
+<ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
+    <li><strong>Simplicity:</strong> No market timing, no stock picking, no financial degree. A mechanical rule one can execute for 30 years without thinking.</li>
+    <li><strong>Recoverable Risk:</strong> Downturns happen. The strategy needs to absorb market crashes and allow recovery.</li>
+    <li><strong>Beating the Market:</strong> Outperforming market indexes consistently over long periods.</li>
+    <li><strong>Minimizing Taxes:</strong> Keep what you make.</li>
+</ul>
+<p>
+    Note: Liquidity isn't a primary concern for wealth accumulation.
+</p>
+<div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
+    Everything that follows depends on one assumption: <strong>broad market indexes trend upward over multi-decade periods.</strong> This isn't a guarantee, but it has held for nearly a century.
+</div>
 
-        <div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
-            <h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">Capital Neutrality</h3>
-            <p>
-                The simulator assumes <strong>capital neutrality</strong>: your monthly budget either services debt or invests in the market. No third option.
-            </p>
-            <p>
-                You set a monthly budget (e.g., $200). The simulator tests payment strategies from minimum required to maximum budget. Pay $80 toward debt? The remaining $120 invests that month. Pay $200 toward debt? $0 invests. The total monthly allocation stays constant.
-            </p>
-        </div>
-        
- 
- <h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">Two Reasons to Use Leverage</h3>
-            <p>
-                <strong>Risk-Shifting:</strong> Borrow once when young, invest immediately, pay back over time. This shifts market exposure forward in time, instead of concentrating exposure in your 50s (when DCA finally accumulates capital). Generally reduces risk by giving you more time to recover from downturns.
-            </p>
-            <p>
-                Evaluation: If profit probability slightly exceeds underperformance probability, risk-shifting succeeded (marginally 50-50). Ruin probability must remain below 2%.
-            </p>
-            <p>
-                <strong>Margin:</strong> Continuously borrow to maintain a target leverage ratio as your portfolio grows. The goal is amplifying returns. Higher risk, higher potential reward. Requires maintaining debt indefinitely.
-            </p>
-            <p>
-                Evaluation: Profit probability must significantly exceed combined underperformance + ruin probability to justify persistent leverage costs and liquidation risk. Professionals usually aim for a < 20% probability spread.
-            </p>
-        <p style="margin: 12px 0; line-height: 1.6;">
-            The simulator runs thousands of market scenarios for each payment strategy to determine outcome probabilities: ruin, underperformance, or outperformance.
-        </p>
+<h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">The Wealth Building Baseline: Market Index Dollar Cost Averaging</h3>
+<p>
+    <strong>Dollar Cost Averaging (DCA)</strong> means investing a fixed amount from each paycheck into a security, in this case a market index fund. It's simple enough and safe enough. But it has a structural problem: <strong>sequence of returns risk</strong>. The biggest market exposure happens late in life, when the most capital has accumulated.
+</p>
+
+<p>
+    <strong>Leverage (borrowing to invest) can amplify returns while mitigating sequence of returns risk.</strong> There is no free lunch. Losses are also amplified, and if debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less money than they initially deposited (ruin).
+</p>
 
 
-
-
+<div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
+    <h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">LTV and Leverage Ratio</h3>
+    <p>
+        <strong>Loan-to-Value (LTV)</strong> is debt as a percentage of total portfolio value. $40K equity, $60K borrowed, $100K portfolio: 60% LTV.
+    </p>
+    <div class="formula">
+        LTV = Debt ÷ Total Portfolio Value × 100
     </div>
+    <p>
+        <strong>Leverage ratio</strong> expresses the same position differently: total position divided by equity. A 60% LTV equals a 2.5x leverage ratio ($100K ÷ $40K).
+    </p>
+    <p>
+        The simulator uses LTV throughout because the inputs and outputs are percentages. "Target margin ratio" means target LTV.
+    </p>
+</div>
+
+<h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">As Close to Ideal as Possible: Leveraged DCA</h3>
+<p>
+    <strong>Think plain DCA with two additions: maintaining a target LTV and avoiding selling.</strong> The same amount is deposited every month. How much gets bought depends on where LTV sits relative to target.
+</p>
+<p>
+    <strong>Simulator Algorithm:</strong> deposit the budget. Check LTV. If below target, buy securities until back at target, else if at or above target, buy nothing.  
+</p>
+
+<p>
+Note: the algorithm as described is not officially recognized in financial literature.
+</p>
+<div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
+    The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). In practice, a balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption. 
+</div>  
+<h4 style="text-align: center; margin-top: 0; border: none; padding: 0;">Working Example</h4>
+<p>
+    Monthly budget of $1,000, target LTV of 50% (2:1 leverage):
+</p>
+<ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
+    <li><strong>Good month (portfolio up):</strong> Growth pushed LTV below target. $1,000 deposit plus additional borrowing buys ~$2,000 in securities.</li>
+    <li><strong>Okay month (slightly down):</strong> LTV rose but is still manageable, investor buys ~$1,000.</li>
+    <li><strong>Bad month (portfolio crashed):</strong> LTV is above target. Investor buys nothing. </li>
+</ul>
+<div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
+
+<p>
+    <strong>For demonstration purposes, the simulator never ever sells. </strong> All gains remain unrealized, which isolates the pure effect of leverage: market movement, borrowing cost, and margin call risk. A reasonable investor would sell to deleverage when a margin call is approaching therefore the simulation <strong>estimates the maximum probability of ruin</strong>. 
+</p>
+
+</div>
+<h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">How Strategies Compare</h3>
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem;">
+    <thead>
+        <tr style="border-bottom: 2px solid #6200EE;">
+            <th style="text-align: left; padding: 12px 8px;"></th>
+            <th style="text-align: center; padding: 12px 8px;">Simple</th>
+            <th style="text-align: center; padding: 12px 8px;">Recoverable Risk</th>
+            <th style="text-align: center; padding: 12px 8px;">Beats Market Long Term</th>
+            <th style="text-align: center; padding: 12px 8px;">Tax Efficient</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr style="border-bottom: 1px solid #e0e0e0;">
+            <td style="padding: 12px 8px; font-weight: 600;">Market Index DCA</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+            <td style="text-align: center; padding: 12px 8px;">N/a (Baseline)</td>
+            <td style="text-align: center; padding: 12px 8px;">N/a (Baseline)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e0e0e0;">
+            <td style="padding: 12px 8px; font-weight: 600;">Conservative Mutual Fund</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes (Usually)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No (After fees)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e0e0e0;">
+            <td style="padding: 12px 8px; font-weight: 600;">Day Trading</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No (Usually)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e0e0e0;">
+            <td style="padding: 12px 8px; font-weight: 600;">Private Wealth</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">Kinda (Barriers to entry and exit)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">It depends</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">It depends</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">It depends</td>
+        </tr>
+        <tr style="border-bottom: 2px solid #e0e0e0;">
+            <td style="padding: 12px 8px; font-weight: 600;">Leveraged DCA</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">Kinda</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">Kinda (LTV needs monitoring)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes (Usually)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+        </tr>
+                <tr style="border-bottom: 2px solid #6200EE;">
+            <td style="padding: 12px 8px; font-weight: 600;">US Congress</td>
+            <td style="text-align: center; padding: 12px 8px; color: #c62828;">No</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">What the Simulator Calculates</h3>
+<p>
+    <strong>Given a margin account, monthly budget, and a time horizon, the question becomes: what's the maximum LTV that can be responsibly maintained? </strong>
+    </p>
+    <p>
+    Too low and the strategy barely beats DCA. Too high and liquidation happens in the first major crash. The simulator finds a potential optimal ratio by running thousands of randomized market scenarios at some standard LTVs.
+</p>
+<p>
+     <strong>In general, over a long time horizon, more leverage means higher returns. By default, the simulator shows the highest ratio at which the probability of ruin is below 0.2%.</strong> The slider explores each ratio interactively after running the simulation.
+</p>
+<div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
+    <h4 style="text-align: center; margin-top: 0; border: none; padding: 0;">Outputs Explained:</h4>
+
+
+<ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
+    <li><strong>Survival probability:</strong> Percentage of scenarios that avoided margin calls.</li>
+    <li><strong>Wealth distribution:</strong> For surviving scenarios, final wealth compared to plain DCA with the same monthly budget.</li>
+    <li><strong>Three outcomes:</strong> Ruin (portfolio value lower than deposits), Sucker (survived but underperformed DCA), or Profit (survived and beat DCA).</li>
+</ul>
+</div>
 
 
     <div class="mode-toggle">
@@ -242,7 +349,7 @@
     <div class="social-section">
         <h3>Connect with me</h3>
         <div class="social-buttons">
-            <a href="https://linkedin.com/in/hm-eng" target="_blank" class="social-btn btn-linkedin">
+            <a href="https://linkedin.com/in/hm-swe" target="_blank" class="social-btn btn-linkedin">
                 <i class="fab fa-linkedin"></i> LinkedIn
             </a>
             <a href="https://wealthsimple.com/invite/9HKHRH" target="_blank" class="social-btn btn-wealthsimple">
@@ -261,31 +368,7 @@
             This tool uses <strong>Monte Carlo simulation</strong> with <strong>geometric Brownian motion</strong> to test leveraged investing strategies across <span id="sim-count-method"></span> randomized market scenarios per strategy.
         </p>
 
-        <h4 style="margin: 20px 0 10px 0;">Step 0: Capital Neutrality Assumption</h4>
-        <p>
-            The simulator enforces capital neutrality: your monthly budget either services debt or invests in the market. The budget cannot sit in cash.
-        </p>
-        <p>
-            You specify a monthly budget (e.g., $200). The simulator tests payment strategies from minimum required to maximum budget. For a strategy paying $80/month toward debt, the remaining $120 invests in the market that month. For a strategy paying $200/month toward debt, $0 invests.
-        </p>
-        <p>
-            This assumption reflects the purpose of leverage: deploying capital to markets immediately via borrowed funds rather than waiting to accumulate it gradually from income.
-        </p>
 
-        <h4 style="margin: 20px 0 10px 0;">Step 1: Calculate the Amortized Payment</h4>
-        <p>
-            The amortized payment is the fixed monthly payment that reduces the loan to $0 at the end of the period:
-        </p>
-        <div class="formula">
-            P = L × [r(1+r)^n] / [(1+r)^n - 1]<br><br>
-            Where:<br>
-            P = Monthly payment<br>
-            L = Loan amount<br>
-            r = Monthly interest rate (annual rate ÷ 12)<br>
-            n = Total number of months
-        </div>
-        <p style="font-size: 0.9rem; color: #666;">
-            This is the standard amortization formula. Paying this amount every month amortizes the loan to $0 by the final month.
         </p>
 
         <h4 style="margin: 20px 0 10px 0;">Step 2: Test <span id="num-strategies-step2"></span> Payment Strategies</h4>
@@ -295,7 +378,7 @@
 
         <h4 style="margin: 20px 0 10px 0;">Step 3: Run <span id="sim-count-step3"></span> Market Scenarios per Strategy</h4>
         <p id="methodology-step3-text">
-            For each payment strategy, the simulator runs <span id="sim-count-step3-2"></span> randomized market scenarios. For the baseline (DCA with no borrowing), it runs <span id="baseline-sims-step3-2"></span> scenarios for higher statistical precision.
+            For each LTV strategy, the simulator runs <span id="sim-count-step3-2"></span> randomized market scenarios. For the baseline (DCA with no borrowing), it runs <span id="baseline-sims-step3-2"></span> scenarios for higher statistical precision.
         </p>
         <p>
             Each simulation models monthly market returns using <strong>geometric Brownian motion</strong>. Each month: generate a stochastic return, update portfolio value, apply debt payment, invest surplus budget, compound interest on remaining debt.
@@ -380,9 +463,6 @@
             <li><strong>Behavioral Factors:</strong> Panic-selling during downturns, inability to maintain payments during job loss, psychological stress not modeled.</li>
             <li><strong>Sequence of Returns Risk:</strong> Order of returns matters. Early large losses damage outcomes more than late losses with identical average returns.</li>
         </ul>
-        <p style="font-size: 0.9rem; color: #666;">
-            <strong>Legal Disclaimer:</strong> This tool displays mathematical probabilities under simplified assumptions. Results do not constitute predictions, guarantees, or recommendations. Real-world investing involves significantly more complexity and uncertainty. Losses may exceed invested capital. Consult licensed financial advisors before making investment decisions.
-        </p>
 
         <h3 style="margin-top: 30px;">Understanding the Economic Theory</h3>
         
@@ -411,15 +491,7 @@
         </div>
     </div>
 
-    <div class="methodology">
-        <h3>Legal Disclaimer</h3>
-        <p>
-            This tool is provided for educational and informational purposes only and does not constitute financial, investment, legal, or tax advice. Use of this tool does not create any fiduciary relationship. Users are solely responsible for financial decisions and for verifying any information before acting on it.
-        </p>
-        <p>
-            Results are based on Monte Carlo simulations and simplified assumptions. Simulated outcomes do not predict actual performance. Leverage can magnify both gains and losses, and losses may exceed invested capital. Past performance is not indicative of future results.
-        </p>
-    </div>
+
 
 </div>
 

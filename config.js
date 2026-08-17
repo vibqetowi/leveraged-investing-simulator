@@ -7,18 +7,17 @@
 const STANDARD_MODE_DEFAULTS = {
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
     INTEREST_RATE: 7.0,       // Prime + 1% spread (%)
-    GROWTH_RATE: 8.0,         // Historical S&P 500 return (%)
-    VOLATILITY: 15.0,         // Standard deviation of annual returns (%)
+    GROWTH_RATE: 8.5,         // Historical S&P 500 return (%)
+    VOLATILITY: 16.5,         // Standard deviation of annual returns (%)
     MARGIN_CALL_LTV: 60.0,    // Conservative liquidation threshold (%)
-    PAYMENT_PERCENTAGE: 50.0,  // Default to 50% of amortized payment
-    MAX_LTV: 35.0             // Maximum LTV allowed in Standard Mode (%)
+    MAX_LTV: 60             // Maximum LTV allowed in Standard Mode (%)
 };
 
 // Default Input Values
 const DEFAULT_INPUTS = {
     LOAN_PERIOD: 30,           // Default simulation period (years)
     MONTHLY_BUDGET: 200,       // Default monthly budget ($)
-    COLLATERAL_VALUE: 30000,   // Default collateral value ($)
+    STARTING_DEPOSIT: 30000,   // Default collateral value ($)
     STARTING_LTV: 20.0         // Default starting LTV (%)
 };
 
@@ -26,9 +25,9 @@ const DEFAULT_INPUTS = {
 const UI_CONSTANTS = {
     BASE_CASE_SIMULATIONS: 20000,        // Non leverage case simulation count
     DEFAULT_RISK_PROFILES: {
-        aggressive: 95,                   // 95% survival rate target
-        median: 98,                       // 98% survival rate target
-        conservative: 99.5                  // 99.5% survival rate target
+        aggressive: 99.5,                   // 99% survival rate target
+        median: 99.8,                       // 99.8% survival rate target
+        conservative: 99.99                  // 99.99% survival rate target
     },
     SIMULATION_COUNT: 10000,              // Number of Monte Carlo simulations per bin
     NUM_STRATEGIES: 21,                   // Number of payment strategies to test

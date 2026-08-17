@@ -64,12 +64,6 @@ function setMode(mode) {
         inflationRateInput.style.cursor = isStandard ? 'not-allowed' : '';
     }
     
-    // Payment type is always visible in both modes
-    const paymentTypeGroup = document.getElementById('paymentTypeGroup');
-    if (paymentTypeGroup) {
-        paymentTypeGroup.style.display = 'flex';
-    }
-    
     // Show LTV slider and loan amount in both modes
     document.getElementById('ltvSliderGroup').style.display = 'flex';
     document.getElementById('loanAmountGroup').style.display = 'flex';
@@ -1249,14 +1243,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize input values from config
     document.getElementById('loanPeriod').value = DEFAULT_INPUTS.LOAN_PERIOD;
     document.getElementById('monthlyBudget').value = DEFAULT_INPUTS.MONTHLY_BUDGET;
-    document.getElementById('assetValue').value = DEFAULT_INPUTS.COLLATERAL_VALUE;
+    document.getElementById('assetValue').value = DEFAULT_INPUTS.STARTING_DEPOSIT;
     
     // Initialize LTV slider with correct starting value
     document.getElementById('ltvSlider').value = DEFAULT_INPUTS.STARTING_LTV;
     document.getElementById('ltvDisplay').innerText = DEFAULT_INPUTS.STARTING_LTV;
     
     // Calculate and set initial loan amount
-    const initialLoanAmount = (DEFAULT_INPUTS.COLLATERAL_VALUE * DEFAULT_INPUTS.STARTING_LTV / 100).toFixed(0);
+    const initialLoanAmount = (DEFAULT_INPUTS.STARTING_DEPOSIT * DEFAULT_INPUTS.STARTING_LTV / 100).toFixed(0);
     document.getElementById('loanAmount').value = initialLoanAmount;
     
     // Set initial mode to standard

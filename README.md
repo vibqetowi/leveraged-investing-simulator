@@ -32,8 +32,6 @@ Open browser console (`F12`) and look for:
 **"Module compilation failed"**
 → Run `npm run asbuild` again 
 
-**"Results look wrong"**
-→ Check `MEMORY_PROTOCOL.md` alignment
 
 **"UI still freezes"**
 → Check console for worker errors
@@ -48,36 +46,9 @@ Open browser console (`F12`) and look for:
 
 ## Architecture
 
-```
-┌─────────────────────┐
-│   UI (calculatorhandler)    │  Main Thread
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│  integration.js     │  Routes Wasm/JS
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│   adapter.js        │  Marshals Data
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│simulationworker.js │  Background Thread
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│   sim.wasm          │  Native Speed
-└─────────────────────┘
-```
 
 ## Support Files
 
-- **BUILD_AND_TEST.md** - Comprehensive testing guide
-- **MEMORY_PROTOCOL.md** - Technical memory layout
 - **package.json** - Dependency management
 - **asconfig.json** - Compiler configuration
 

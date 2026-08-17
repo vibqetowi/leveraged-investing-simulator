@@ -15,10 +15,24 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Get interest rate description
+     * Get effective borrowing rate description
      */
     getInterestRateText() {
-        return `${STANDARD_MODE_DEFAULTS.INTEREST_RATE}%`;
+        return `${getEffectiveBorrowingRate(STANDARD_MODE_DEFAULTS.PRIME_RATE, STANDARD_MODE_DEFAULTS.SPREAD_RATE)}%`;
+    },
+
+    /**
+     * Get prime rate text
+     */
+    getPrimeRateText() {
+        return `${STANDARD_MODE_DEFAULTS.PRIME_RATE}%`;
+    },
+
+    /**
+     * Get spread text
+     */
+    getSpreadRateText() {
+        return `${STANDARD_MODE_DEFAULTS.SPREAD_RATE}%`;
     },
 
     /**
@@ -64,10 +78,13 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Calculate spread between growth and interest
+     * Calculate spread between growth and effective borrowing rate
      */
     getSpreadText() {
-        const spread = STANDARD_MODE_DEFAULTS.GROWTH_RATE - STANDARD_MODE_DEFAULTS.INTEREST_RATE;
+        const spread = STANDARD_MODE_DEFAULTS.GROWTH_RATE - getEffectiveBorrowingRate(
+            STANDARD_MODE_DEFAULTS.PRIME_RATE,
+            STANDARD_MODE_DEFAULTS.SPREAD_RATE
+        );
         return `${spread}%`;
     },
 
@@ -134,154 +151,128 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Generate intro paragraph text
-     */
-    getIntroParagraph() {
-        return `Leveraged investing means borrowing to invest earlier than you otherwise could. You borrow against your portfolio as collateral, invest the loan immediately, then pay it back over time from your regular income. Stock market returns <strong>${this.getGrowthRateText()} per year</strong> (S&P 500 historical average 1950-2024). Borrowing costs <strong>${this.getInterestRateText()}</strong> (Prime + 1% typical). The ${this.getSpreadText()} spread accrues on borrowed capital when markets rise.`;
-    },
-
-    /**
-     * Generate catch paragraph text
-     */
-    getCatchParagraph() {
-        return `When markets crash, debt obligations remain fixed at ${this.getInterestRateText()} interest while portfolio value shrinks. Leverage amplifies both gains and losses.`;
-    },
-
-    /**
-     * Generate simulation description
-     */
-    getSimulationDescription() {
-        return `This simulator tests <strong>${UI_CONSTANTS.NUM_STRATEGIES - 1} payment strategies</strong> across <strong>${this.getSimulationCountText()} market scenarios per strategy</strong> (plus <strong>${this.getBaseCaseSimulationsText()} scenarios for DCA baseline</strong>). Generates probability distributions: what percentage result in ruin, underperformance, or outperformance.`;
-    },
-
-    /**
-     * Generate methodology step 2 text
-     */
-    getMethodologyStep2() {
-        return `The simulator tests ${UI_CONSTANTS.NUM_STRATEGIES - 1} payment strategies from minimum payment to monthly budget. Each represents a point on the leverage spectrum: low payment = high leverage; high payment = rapid debt paydown.`;
-    },
-
-    /**
-     * Generate methodology step 3 text
-     */
-    getMethodologyStep3() {
-        const perStrategy = UI_CONSTANTS.SIMULATION_COUNT.toLocaleString();
-        const baseline = UI_CONSTANTS.BASE_CASE_SIMULATIONS.toLocaleString();
-        return `For each payment strategy, the simulator runs ${perStrategy} randomized market scenarios. For the DCA baseline, it runs ${baseline} scenarios for higher statistical precision.`;
-    },
-
-    /**
-     * Generate methodology formula text for volatility
-     */
-    getMethodologyFormulaText() {
-        return `μ = Expected annual growth rate (${this.getGrowthRateText()} in Standard Mode)<br>
-            σ = Volatility / standard deviation (${this.getVolatilityText()} in Standard Mode)<br>
-            Z = Random normal variable (simulates market surprises)`;
-    },
-
-    /**
-     * Generate margin call step 4 text
-     */
-    getMarginCallStep4() {
-        return `Lenders enforce rules. If your debt gets too large relative to your portfolio value (your Loan-to-Value ratio), they force liquidation. In Standard Mode, the margin call threshold is ${this.getMarginCallText()} LTV.`;
-    },
-
-    /**
-     * Generate margin call followup text
-     */
-    getMarginCallFollowup() {
-        return `If at any point your debt exceeds ${this.getMarginCallText()} of your portfolio's value, the lender sells your positions, pays themselves back, and you're left with $0. The calculator tracks "survival rate"—the percentage of ${this.getSimulationCountText()} simulations where your account doesn't hit this threshold.`;
-    },
-
-    /**
-     * Generate margin call note
-     */
-    getMarginCallNote() {
-        return `${this.getMarginCallText()} LTV is conservative relative to the market. Different lenders use different thresholds (40-80%); you can adjust it in Custom Mode.`;
-    },
-
-    /**
-     * Generate inflation example text
-     */
-    getInflationExample() {
-        return `For example, if your portfolio grows to $1M in ${DEFAULT_INPUTS.LOAN_PERIOD} years but inflation is ${this.getInflationText()} per year, that $1M in the future is worth less in today's dollars. This calculator shows what that really means for your lifestyle.`;
-    },
-
-    /**
-     * Generate economics text
-     */
-    getEconomicsText() {
-        return `Leveraged investing works when there's a positive <strong>spread</strong> between borrowing costs and market returns. If borrowing costs are ${this.getInterestRateText()} and stocks return ${this.getGrowthRateText()}, the ${this.getSpreadText()} spread accrues on borrowed capital. Over ${DEFAULT_INPUTS.LOAN_PERIOD} years on $100K borrowed, that compounds significantly.`;
-    },
-
-    /**
-     * Generate standard mode assumptions list
-     */
-    getStandardModeAssumptions() {
-        return `
-            <li><strong>Interest Rate: ${this.getInterestRateText()}</strong> — This assumes Canadian Prime Rate stays around 6% plus a 1% lender spread. It's higher than current rates (early 2026), so it accounts for rate increases over your ${DEFAULT_INPUTS.LOAN_PERIOD}-year period.</li>
-            <li><strong>Market Growth: ${this.getGrowthRateText()} per year</strong> — Historical average for the S&P 500 from 1950-2024. It's <em>not</em> the best-case scenario; many years are below ${this.getGrowthRateText()}, some are above.</li>
-            <li><strong>Volatility: ${this.getVolatilityText()} per year</strong> — Standard deviation of annual S&P 500 returns. This means most years fall between -7% and +23%, roughly. It captures the realistic swings you'd experience.</li>
-            <li><strong>Margin Call Threshold: ${this.getMarginCallText()} LTV</strong> — Conservative. Different lenders enforce 40-80% LTV depending on their risk appetite. At ${this.getMarginCallText()}, the lender protects themselves earlier, which means higher probability of liquidation if markets decline.</li>
-            <li><strong>Inflation: ${this.getInflationText()} per year</strong> — Long-term average U.S. inflation. All final wealth figures convert to "today's dollars" using this rate.</li>
-            <li><strong>Monthly Payment: ${this.getPaymentPercentageText()} of Amortized</strong> (auto-calculated) — This is the default starting point. Paying ${this.getPaymentPercentageText()} means you're not paying down the principal very fast; you're betting on leverage. This lets you explore the tradeoff.</li>
-        `;
-    },
-
-    /**
-     * Generate three outcomes ruin text
-     */
-    getThreeOutcomesRuinText() {
-        return `<strong>Ruin (Red):</strong> Either (1) your account hit the ${this.getMarginCallText()} margin call threshold and was liquidated, or (2) you ended with less wealth than your initial equity. Both outcomes represent failure. The "ruin probability" is the percentage of ${this.getSimulationCountText()} scenarios where this occurs.`;
-    },
-
-    /**
-     * Generate reference leverage text
-     */
-    getReferenceLeverageText() {
-        return `<strong>Leverage & The Spread:</strong> Leveraged investing relies on <strong>positive carry</strong>. If you borrow at ${this.getInterestRateText()} and invest at ${this.getGrowthRateText()}, you keep ${this.getSpreadText()} on borrowed capital. Read more: <a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Investopedia's carry trade explanation</a>. The catch: this only works if markets go up. In down markets, you're paying ${this.getInterestRateText()} on a shrinking asset base—the exact opposite dynamic.`;
-    },
-
-    /**
-     * Generate reference time value text
-     */
-    getReferenceTimeValueText() {
-        return `<strong>Time Value of Money & Loan Amortization:</strong> When you borrow $100,000 over ${DEFAULT_INPUTS.LOAN_PERIOD} years at ${this.getInterestRateText()}, there's a specific monthly payment that makes sense: <a href="https://www.investopedia.com/terms/a/amortization.asp" target="_blank">Investopedia's amortization guide</a> explains the math. The formula we use calculates that "fair" payment. Paying less means you're extending the debt; paying more means you're paying it off faster.`;
-    },
-
-    /**
-     * Generate reference margin call text
-     */
-    getReferenceMarginCallText() {
-        return `<strong>Margin Calls & Forced Liquidation:</strong> When you borrow against your portfolio, the lender sets a maximum Loan-to-Value ratio. Read <a href="https://www.investopedia.com/terms/m/margincall.asp" target="_blank">Investopedia's margin call explanation</a>. If the ratio is breached, the lender sells your positions without asking, pays themselves back, and you're left with $0. This is not theoretical—it happened to many investors during 2008 and 2020. Standard Mode conservatively uses a ${this.getMarginCallText()} LTV threshold; more aggressive lenders allow up to 75-80%; more conservative lenders enforce 40-50%.`;
-    },
-
-    /**
-     * Generate reference inflation text
-     */
-    getReferenceInflationText() {
-        return `<strong>Real vs. Nominal Returns—Inflation Adjustment:</strong> A $1M portfolio sounds great until you realize that $1M in ${DEFAULT_INPUTS.LOAN_PERIOD} years won't buy as much as $1M today. This calculator converts all results to "real dollars" (today's purchasing power) using the inflation rate. <a href="https://www.investopedia.com/terms/r/realinterestrate.asp" target="_blank">Investopedia on real interest rates</a> explains the concept applied to debt. For wealth: <a href="https://www.khanacademy.org/economics-finance-domain/macroeconomics/aggregate-demand-supply/inflation-tutorial/v/inflation-and-real-return" target="_blank">Khan Academy's inflation and real return video</a> walks through it step-by-step.`;
-    },
-
-    /**
-     * Generate Monte Carlo intro text
-     */
-    getMonteCarloIntroText() {
-        return `This tool uses <strong>Monte Carlo simulation</strong> with <strong>geometric Brownian motion</strong> to test leveraged investing strategies across ${this.getSimulationCountText()} randomized market scenarios per strategy.`;
-    },
-
-    /**
      * Get mode description for Standard Mode
      */
     getModeStandardDescription() {
-        return `<p><strong>Standard Mode:</strong> Research-backed defaults (7% interest, 8% growth, 15% volatility, 60% liquidation threshold). Set budget, collateral, LTV. Simulator tests payment strategies from minimum to maximum budget allocation.</p>`;
+        return `<p><strong>Standard Mode:</strong> The simulator starts from a research-backed baseline for the monthly-deposit and target-LTV framework; Custom Mode allows you to adjust more parameters.</p>`;
     },
 
     /**
      * Get mode description for Custom Mode
      */
     getModeCustomDescription() {
-        return `<p><strong>Custom Mode:</strong> All parameters unlocked. For testing specific lending terms, alternative market assumptions, or margin strategies. Adjust interest rates, growth expectations, volatility, liquidation thresholds, and inflation.</p>`;
+        return `<p><strong>Custom Mode:</strong> All key inputs are unlocked so you can test different monthly budgets, borrowing costs, expected returns, volatility assumptions, and liquidation thresholds without changing the core logic for deposits and target LTV.</p>`;
+    },
+
+    /**
+     * Get the constant leverage preamble markup
+     */
+    getConstantPreambleHtml() {
+        return `
+                  <h3 class="section-title-center">As Close to Ideal as Possible: Leveraged DCA</h3>
+            <p>
+                <strong>Leveraged DCA is DCA with two additions: maintaining a target LTV and avoiding voluntary sales.</strong> The same amount is deposited every month. How much gets bought depends on where LTV sits relative to target.
+            </p>
+            <p>
+                <strong>Simulator Algorithm:</strong> apply the market return to the securities position. Accrue interest on debt. The monthly budget pays down debt directly. Recalculate LTV. If below target, borrow and buy securities until back at target; if at or above target, buy nothing.
+            </p>
+
+            <div class="info-box">
+                The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). A balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption.
+            </div>
+
+            <h4 class="section-title-left">Working Example</h4>
+            <p>
+                Monthly budget of $1,000, target LTV of 50% (2:1 leverage). At target, every $1 of equity supports $1 of debt, so the baseline purchase is $2,000 ($1,000 deposit + $1,000 borrowing):
+            </p>
+            <ul class="compact-list">
+                <li><strong>Good month (portfolio up):</strong> Growth pushed LTV below target. The $1,000 budget pays down debt, pushing LTV further below target. The simulator then borrows and buys <strong>more than $2,000</strong> in securities to restore LTV to 50%.</li>
+                <li><strong>Okay month (flat/slightly down):</strong> LTV drifted near target. $1,000 pays down debt, simulator borrows to buy <strong>~$2,000</strong>.</li>
+                <li><strong>Bad month (portfolio crashed):</strong> LTV is above target. The $1,000 budget reduces debt, modestly improving LTV. No new securities are purchased.</li>
+            </ul>
+
+            <h3 class="section-title-center">How Strategies Compare</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr class="comparison-table-header">
+                        <th class="comparison-table-header"></th>
+                        <th class="comparison-table-header">Simple</th>
+                        <th class="comparison-table-header">Recoverable Risk</th>
+                        <th class="comparison-table-header">Excess Returns</th>
+                        <th class="comparison-table-header">Efficient</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="comparison-table-row">
+                        <td>Market Index DCA</td>
+                        <td class="cell-green">Yes</td>
+                        <td class="cell-green">Yes</td>
+                        <td class="cell-neutral">N/a (Baseline)</td>
+                        <td class="cell-green">Yes</td>
+                    </tr>
+                    <tr class="comparison-table-row">
+                        <td>Conservative Mutual Fund</td>
+                        <td class="cell-green">Yes</td>
+                        <td class="cell-green">Yes (Usually)</td>
+                        <td class="cell-red">No (After fees)</td>
+                        <td class="cell-red">No</td>
+                    </tr>
+                    <tr class="comparison-table-row">
+                        <td>Day Trading</td>
+                        <td class="cell-red">No</td>
+                        <td class="cell-red">No</td>
+                        <td class="cell-red">No (Usually)</td>
+                        <td class="cell-red">No</td>
+                    </tr>
+                    <tr class="comparison-table-row">
+                        <td>Private Wealth</td>
+                        <td class="cell-orange">Kinda (Barriers to entry and exit)</td>
+                        <td class="cell-orange">It depends</td>
+                        <td class="cell-orange">It depends</td>
+                        <td class="cell-orange">It depends</td>
+                    </tr>
+                    <tr class="comparison-table-row">
+                        <td>Leveraged DCA</td>
+                        <td class="cell-orange">Kinda</td>
+                        <td class="cell-orange">Kinda (LTV needs monitoring)</td>
+                        <td class="cell-green">Yes (Usually)</td>
+                        <td class="cell-orange">Kinda (Interest is tax deductible)</td>
+                    </tr>
+                    <tr class="comparison-table-row">
+                        <td>US Congress</td>
+                        <td class="cell-red">No</td>
+                        <td class="cell-green">Yes</td>
+                        <td class="cell-green">Yes</td>
+                        <td class="cell-green">Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 class="section-title-center">What the Simulator Calculates</h3>
+            <p>
+                <strong>Given a margin account, monthly budget, and a time horizon, the question becomes: what's the maximum LTV that can be responsibly maintained?</strong>
+            </p>
+            <p>
+                Too low and there are low chances of excess returns. Too high and liquidation happens in the first major crash. The simulator runs thousands of randomized market scenarios at a given target LTV to estimate outcome probabilities.
+            </p>
+            <p>
+                <strong>In general, over a long time horizon, more leverage means higher returns.</strong> The slider starts at the base strategy (0% target LTV) and can be moved up to explore higher borrowing levels interactively after running the simulation.
+            </p>
+
+
+        `;
+    },
+
+    /**
+     * Get the lifecycle preamble markup
+     */
+    getLifecyclePreambleHtml() {
+        return `
+            <h1>Lifecycle Investing Simulator</h1>
+            <div class="alert-warning">
+                <strong>Placeholder:</strong> This section is a placeholder. Lifecycle investing is not implemented.
+            </div>
+        `;
     },
 
     /**
@@ -421,55 +412,18 @@ const CopywritingHelpers = {
      */
     generateVerdict(trinaryStats) {
         if (!trinaryStats) return null;
-        
-        const { ruinPercent, suckerPercent, profitPercent } = trinaryStats;
-        const spreadPercent = profitPercent - suckerPercent;
-        
-        // Get pure classification
-        const classification = this._classifyStrategy(trinaryStats);
-        
-        // Get fix suggestions
-        const fixSuggestion = this._suggestFixes(classification, trinaryStats);
-        
-        // Format for presentation
-        let color = null;
-        let icon = null;
-        let title = null;
-        let message = null;
-        
-        if (classification.isDangerous) {
-            color = '#B3261E';
-            icon = '⛔';
-            title = 'DANGEROUS: UNACCEPTABLE RUIN RISK';
-            message = `You have a <strong>${ruinPercent.toFixed(1)}%</strong> chance of ruin (liquidation or ending with a loss). This exceeds acceptable risk tolerance. Reduce borrowed principal or increase monthly payment significantly.`;
-        } else if (classification.isPointless) {
-            color = '#FF9800';
-            icon = '⚠️';
-            title = 'POINTLESS: ODDS UNFAVORABLE';
-            message = `The probability of outperforming a standard no-debt investment is <strong>${profitPercent.toFixed(1)}%</strong>. Underperformance probability is <strong>${(suckerPercent + ruinPercent).toFixed(1)}%</strong> combined (ruin or negative spread). The borrowing cost exceeds the investment return advantage.`;
-        } else if (classification.isMarginal) {
-            color = '#AFAFAF';
-            icon = '🤔';
-            title = 'MARGINAL: MODERATE EDGE OR ELEVATED RUIN';
-            message = `Spread advantage: <strong>${spreadPercent.toFixed(1)}%</strong> per year. Profit probability: <strong>${profitPercent.toFixed(1)}%</strong>. Underperformance probability: <strong>${suckerPercent.toFixed(1)}%</strong>. Ruin probability: <strong>${ruinPercent.toFixed(1)}%</strong>. Strategy is marginal due to either limited spread advantage (target >20%) or elevated ruin risk (target <2%). Expect mixed outcomes with volatility risk during downturns.`;
-        } else if (classification.isStrong) {
-            color = '#1B5E20';
-            icon = '✅';
-            title = 'STRONG: FAVORABLE RISK-REWARD RATIO';
-            message = `Spread advantage: <strong>${spreadPercent.toFixed(1)}%</strong> per year. Profit probability: <strong>${profitPercent.toFixed(1)}%</strong>. Ruin risk: <strong>${ruinPercent.toFixed(1)}%</strong>. The spread is sufficient to meet industry standards (>20%) with ruin risk contained below 2%. The strategy has mathematical justification relative to risk.`;
-        }
-        
+        const spread = trinaryStats.profitPercent - trinaryStats.suckerPercent;
         return {
-            status: classification.status,
-            color,
-            icon,
-            title,
-            message,
-            ruinPercent,
-            suckerPercent,
-            profitPercent,
-            spread: spreadPercent,
-            fixSuggestion
+            status: 'RESULTS_AVAILABLE',
+            color: '#333333',
+            icon: '',
+            title: 'Simulation results',
+            message: '',
+            ruinPercent: trinaryStats.ruinPercent,
+            suckerPercent: trinaryStats.suckerPercent,
+            profitPercent: trinaryStats.profitPercent,
+            spread,
+            fixSuggestion: []
         };
     },
 
@@ -478,14 +432,7 @@ const CopywritingHelpers = {
      * Kept for backward compatibility during refactoring
      */
     generateDiagnosticFix(category, trinaryStats) {
-        // Legacy interface - convert category to classification object
-        const classification = {
-            isDangerous: category === 'dangerous',
-            isPointless: category === 'pointless',
-            isMarginal: category === 'marginal',
-            isStrong: category === 'strong'
-        };
-        return this._suggestFixes(classification, trinaryStats);
+        return [];
     },
 
     /**

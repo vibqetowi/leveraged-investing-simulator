@@ -396,7 +396,6 @@ body {
     border: 1px solid var(--md-primary);
     text-transform: none;
     letter-spacing: normal;
-    margin: 0;
 }
 
 .calc-btn-secondary:hover,

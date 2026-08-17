@@ -53,11 +53,25 @@ function setMode(mode) {
     ['growth', 'vol', 'marginCall', 'primeRate', 'spreadRate', 'inflationRate']
         .forEach(id => setInputLocked(document.getElementById(id), isStandard));
     
-    // Show LTV slider in both modes; the loan derivation stays hidden to the user
-    const ltvSliderGroup = document.getElementById('ltvSliderGroup');
-    if (ltvSliderGroup) ltvSliderGroup.classList.add('is-flex');
-    const loanAmountGroup = document.getElementById('loanAmountGroup');
-    if (loanAmountGroup) loanAmountGroup.classList.add('is-flex');
+    // Interest rate is always visible, just readonly in Standard Mode
+    const interestRateInput = document.getElementById('interestRate');
+    if (interestRateInput) {
+        interestRateInput.readOnly = isStandard;
+        interestRateInput.style.backgroundColor = isStandard ? '#f5f5f5' : '';
+        interestRateInput.style.cursor = isStandard ? 'not-allowed' : '';
+    }
+
+    // Inflation rate is always visible, just readonly in Standard Mode
+    const inflationRateInput = document.getElementById('inflationRate');
+    if (inflationRateInput) {
+        inflationRateInput.readOnly = isStandard;
+        inflationRateInput.style.backgroundColor = isStandard ? '#f5f5f5' : '';
+        inflationRateInput.style.cursor = isStandard ? 'not-allowed' : '';
+    }
+    
+    // Show LTV slider and loan amount in both modes
+    document.getElementById('ltvSliderGroup').style.display = 'flex';
+    document.getElementById('loanAmountGroup').style.display = 'flex';
     
     // Configure LTV slider and hidden loan amount based on mode
     const ltvSlider = document.getElementById('ltvSlider');

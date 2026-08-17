@@ -7,10 +7,10 @@
 const STANDARD_MODE_DEFAULTS = {
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
     INTEREST_RATE: 7.0,       // Prime + 1% spread (%)
-    GROWTH_RATE: 8.5,         // Historical S&P 500 return (%)
+    GROWTH_RATE: 10,         // Historical S&P 500 return (%)
     VOLATILITY: 16.5,         // Standard deviation of annual returns (%)
     MARGIN_CALL_LTV: 60.0,    // Conservative liquidation threshold (%)
-    MAX_LTV: 60             // Maximum LTV allowed in Standard Mode (%)
+    MAX_LTV: 50             // Maximum LTV allowed in Standard Mode (%)
 };
 
 // Default Input Values

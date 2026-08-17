@@ -28,8 +28,8 @@
 <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
     <li><strong>Simplicity:</strong> No market timing, no stock picking, no financial degree. A mechanical rule one can execute for 30 years without thinking.</li>
     <li><strong>Recoverable Risk:</strong> Downturns happen. The strategy needs to absorb market crashes and allow recovery.</li>
-    <li><strong>Beating the Market:</strong> Outperforming market indexes consistently over long periods.</li>
-    <li><strong>Minimizing Taxes:</strong> Keep what you make.</li>
+    <li><strong>Excess Returns:</strong> Consistently outperforming a benchmark strategy over long periods (see next section).</li>
+    <li><strong>Efficient:</strong> Minimizes taxes and fees. Keep what you make.</li>
 </ul>
 <p>
     Note: Liquidity isn't a primary concern for wealth accumulation.
@@ -38,13 +38,13 @@
     Everything that follows depends on one assumption: <strong>broad market indexes trend upward over multi-decade periods.</strong> This isn't a guarantee, but it has held for nearly a century.
 </div>
 
-<h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">The Wealth Building Baseline: Market Index Dollar Cost Averaging</h3>
+<h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">The Wealth Building Benchmark: Dollar Cost Averaging</h3>
 <p>
-    <strong>Dollar Cost Averaging (DCA)</strong> means investing a fixed amount from each paycheck into a security, in this case a market index fund. It's simple enough and safe enough. But it has a structural problem: <strong>sequence of returns risk</strong>. The biggest market exposure happens late in life, when the most capital has accumulated.
+    <strong>Dollar Cost Averaging (DCA)</strong> means investing a fixed amount from each paycheck into a security, most commonly a market index fund. It's simple enough and safe enough. But it has a structural inefficiency: <strong>most capital is deployed late in the accumulation period</strong>, when the portfolio is largest. Late crashes dominate outcomes because dollar-weighted exposure concentrates at the end of the timeline.
 </p>
 
 <p>
-    <strong>Leverage (borrowing to invest) can amplify returns while mitigating sequence of returns risk.</strong> There is no free lunch. Losses are also amplified, and if debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less money than they initially deposited (ruin).
+    <strong>Leverage (borrowing to invest) front-loads market exposure</strong>, giving capital more time to compound thus shifting time risk and amplifying potential returns. There is no free lunch. Losses are also amplified, and if debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less money than they initially deposited (ruin).
 </p>
 
 
@@ -60,7 +60,7 @@
         <strong>Leverage ratio</strong> expresses the same position differently: total position divided by equity. A 60% LTV equals a 2.5x leverage ratio ($100K ÷ $40K).
     </p>
     <p>
-        The simulator uses LTV throughout because the inputs and outputs are percentages. "Target margin ratio" means target LTV.
+        The simulator uses LTV throughout because the inputs and outputs are percentages.
     </p>
 </div>
 
@@ -80,19 +80,17 @@ Note: the algorithm as described is not officially recognized in financial liter
 </div>  
 <h4 style="text-align: center; margin-top: 0; border: none; padding: 0;">Working Example</h4>
 <p>
-    Monthly budget of $1,000, target LTV of 50% (2:1 leverage):
+    Monthly budget of $1,000, target LTV of 50% (2:1 leverage). At target, every $1 of equity supports $1 of debt, so the baseline purchase is $2,000 ($1,000 deposit + $1,000 borrowing):
 </p>
 <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
-    <li><strong>Good month (portfolio up):</strong> Growth pushed LTV below target. $1,000 deposit plus additional borrowing buys ~$2,000 in securities.</li>
-    <li><strong>Okay month (slightly down):</strong> LTV rose but is still manageable, investor buys ~$1,000.</li>
-    <li><strong>Bad month (portfolio crashed):</strong> LTV is above target. Investor buys nothing. </li>
+    <li><strong>Good month (portfolio up):</strong> Growth pushed LTV below target. $1,000 deposit plus additional borrowing buys <strong>more than $2,000</strong> in securities to restore LTV to 50%.</li>
+    <li><strong>Okay month (flat/slightly down):</strong> LTV drifted near target. $1,000 deposit plus matching borrowing buys <strong>~$2,000</strong>.</li>
+    <li><strong>Bad month (portfolio crashed):</strong> LTV is above target. Investor buys nothing. The deposit sits as cash, modestly reducing LTV for next month.</li>
 </ul>
 <div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
-
 <p>
-    <strong>For demonstration purposes, the simulator never ever sells. </strong> All gains remain unrealized, which isolates the pure effect of leverage: market movement, borrowing cost, and margin call risk. A reasonable investor would sell to deleverage when a margin call is approaching therefore the simulation <strong>estimates the maximum probability of ruin</strong>. 
+    <strong>For demonstration purposes, the simulator never sells voluntarily. </strong> All gains remain unrealized, which isolates the pure effect of leverage: market movement, borrowing cost, and margin callz. A reasonable investor would sell to deleverage when a margin call is approaching therefore the simulation <strong>estimates the maximum probability of ruin</strong>. 
 </p>
-
 </div>
 <h3 style="text-align: center; margin-top: 0; border: none; padding: 0;">How Strategies Compare</h3>
 <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem;">
@@ -101,15 +99,15 @@ Note: the algorithm as described is not officially recognized in financial liter
             <th style="text-align: left; padding: 12px 8px;"></th>
             <th style="text-align: center; padding: 12px 8px;">Simple</th>
             <th style="text-align: center; padding: 12px 8px;">Recoverable Risk</th>
-            <th style="text-align: center; padding: 12px 8px;">Beats Market Long Term</th>
-            <th style="text-align: center; padding: 12px 8px;">Tax Efficient</th>
+            <th style="text-align: center; padding: 12px 8px;">Excess Returns</th>
+            <th style="text-align: center; padding: 12px 8px;">Efficient</th>
         </tr>
     </thead>
     <tbody>
         <tr style="border-bottom: 1px solid #e0e0e0;">
             <td style="padding: 12px 8px; font-weight: 600;">Market Index DCA</td>
             <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
-            <td style="text-align: center; padding: 12px 8px;">N/a (Baseline)</td>
+            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
             <td style="text-align: center; padding: 12px 8px;">N/a (Baseline)</td>
             <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
         </tr>
@@ -139,9 +137,9 @@ Note: the algorithm as described is not officially recognized in financial liter
             <td style="text-align: center; padding: 12px 8px; color: #f57c00;">Kinda</td>
             <td style="text-align: center; padding: 12px 8px; color: #f57c00;">Kinda (LTV needs monitoring)</td>
             <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes (Usually)</td>
-            <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
+            <td style="text-align: center; padding: 12px 8px; color: #f57c00;">Kinda (Interest is tax deductible)</td>
         </tr>
-                <tr style="border-bottom: 2px solid #6200EE;">
+        <tr style="border-bottom: 2px solid #6200EE;">
             <td style="padding: 12px 8px; font-weight: 600;">US Congress</td>
             <td style="text-align: center; padding: 12px 8px; color: #c62828;">No</td>
             <td style="text-align: center; padding: 12px 8px; color: #2e7d32;">Yes</td>
@@ -156,22 +154,20 @@ Note: the algorithm as described is not officially recognized in financial liter
     <strong>Given a margin account, monthly budget, and a time horizon, the question becomes: what's the maximum LTV that can be responsibly maintained? </strong>
     </p>
     <p>
-    Too low and the strategy barely beats DCA. Too high and liquidation happens in the first major crash. The simulator finds a potential optimal ratio by running thousands of randomized market scenarios at some standard LTVs.
+    Too low and there are low chances of excess returns. Too high and liquidation happens in the first major crash. The simulator runs thousands of randomized market scenarios at a given target LTV to estimate the probability of ruin.
 </p>
 <p>
-     <strong>In general, over a long time horizon, more leverage means higher returns. By default, the simulator shows the highest ratio at which the probability of ruin is below 0.2%.</strong> The slider explores each ratio interactively after running the simulation.
+     <strong>In general, over a long time horizon, more leverage means higher returns. By default (median risk profile), the simulator highlights strategies where the probability of ruin is below 0.2%.</strong> The slider explores different target LTVs interactively after running the simulation.
 </p>
 <div style="background: #E8EAF6; padding: 20px; border-radius: 4px; border-left: 4px solid #6200EE; margin: 40px 0;">
     <h4 style="text-align: center; margin-top: 0; border: none; padding: 0;">Outputs Explained:</h4>
 
-
 <ul style="margin: 12px 0; line-height: 1.8; padding-left: 20px;">
-    <li><strong>Survival probability:</strong> Percentage of scenarios that avoided margin calls.</li>
+    <li><strong>Survival probability:</strong> Percentage of scenarios that avoided ruins.</li>
     <li><strong>Wealth distribution:</strong> For surviving scenarios, final wealth compared to plain DCA with the same monthly budget.</li>
-    <li><strong>Three outcomes:</strong> Ruin (portfolio value lower than deposits), Sucker (survived but underperformed DCA), or Profit (survived and beat DCA).</li>
+    <li><strong>Three outcomes:</strong> Ruin (ended with less than deposits), Sucker (performance equal or belowDCA), or Profit (beat DCA).</li>
 </ul>
 </div>
-
 
     <div class="mode-toggle">
         <button id="standardMode" class="btn-active" onclick="setMode('standard')">Standard Mode</button>
@@ -198,150 +194,128 @@ Note: the algorithm as described is not officially recognized in financial liter
             <strong>⚠️ Budget Warning:</strong> <span id="budgetWarningText"></span>
         </div>
     </div>
-
-    <div class="grid">
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label>Simulation Period (Years)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Planned holding period for debt repayment. Longer periods increase recovery probability from downturns and extend exposure to adverse events. Outcome distribution changes with this parameter.</div>
-            </div>
-            <input type="number" id="loanPeriod" onchange="handleBudgetOrPeriodChange()" oninput="handleBudgetOrPeriodChange()">
+<div class="grid">
+    <div class="input-group">
+        <div class="label-wrapper">
+            <label>Simulation Period (Years)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Investment time horizon in years. Longer periods increase recovery probability from market downturns but extend exposure to adverse events. Outcome distribution changes with this parameter.</div>
         </div>
-        <div class="input-group" id="monthlyBudgetGroup">
-            <div class="label-wrapper">
-                <label>Monthly Budget for Investing ($)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Your total monthly budget available for debt payments and investments. This becomes your theoretical maximum monthly payment. Any amount not used for debt service will be invested monthly.</div>
-            </div>
-            <input type="number" id="monthlyBudget" onchange="handleBudgetOrPeriodChange()" oninput="handleBudgetOrPeriodChange()">
+        <input type="number" id="loanPeriod" onchange="handleBudgetOrPeriodChange()" oninput="handleBudgetOrPeriodChange()">
+    </div>
+    <div class="input-group" id="monthlyBudgetGroup">
+        <div class="label-wrapper">
+            <label>Monthly Budget for Investing ($)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Your monthly investment budget. Each month, this amount is deposited into the account. If LTV is below target, the deposit plus additional borrowing purchases securities to restore LTV. If LTV is at or above target, the deposit is held as cash without purchasing.</div>
         </div>
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label id="assetLabel">Book Value of Collateral Account ($)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup" id="assetTooltip">The total value of your investment account that's backing the loan. If you have $100K in stocks, that's your collateral. The calculator uses this to determine Loan-to-Value—if you borrow $60K against $100K, that's 60% LTV.</div>
-            </div>
-            <input type="number" id="assetValue" step="1" onchange="updateLoanFromCollateral()" oninput="updateLoanFromCollateral()">
+        <input type="number" id="monthlyBudget" onchange="handleBudgetOrPeriodChange()" oninput="handleBudgetOrPeriodChange()">
+    </div>
+    <div class="input-group">
+        <div class="label-wrapper">
+            <label id="assetLabel">Initial Deposit ($)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup" id="assetTooltip">Starting capital injected at t=0. This becomes your equity, and the initial loan is calculated from it using your target LTV. For example, $100K deposit at 50% LTV means $100K borrowed for a $200K starting position.</div>
         </div>
-        <div class="input-group" id="ltvSliderGroup">
-            <div class="label-wrapper">
-                <label>Loan-to-Value Ratio (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Loan-to-Value ratio as a percentage of collateral. At 0%, no borrowing occurs. <span id="max-ltv-tooltip"></span> is the maximum LTV threshold in Standard Mode.</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <input type="range" id="ltvSlider" min="0" max="35" step="1" value="20" oninput="updateLoanFromSlider()" style="flex: 1;">
-                <div style="min-width: 50px; font-weight: 600; color: #2196F3; text-align: right;"><span id="ltvDisplay">20</span>%</div>
-            </div>
+        <input type="number" id="assetValue" step="1" onchange="updateLoanFromCollateral()" oninput="updateLoanFromCollateral()">
+    </div>
+    <div class="input-group" id="ltvSliderGroup">
+        <div class="label-wrapper">
+            <label>Target Loan-to-Value Ratio (%)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Your <strong>target</strong> LTV. The algorithm maintains this ratio: when portfolio growth pushes LTV below target, it borrows to buy securities and restore the ratio. When market declines push LTV above target, it buys nothing until the ratio recovers. <span id="max-ltv-tooltip"></span> is the maximum LTV in Standard Mode.</div>
         </div>
-        <div class="input-group" id="loanAmountGroup">
-            <div class="label-wrapper">
-                <label>Loan Amount ($)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Amount borrowed from the lender to invest. Calculated from your collateral and LTV ratio in Standard Mode. Directly editable in Custom Mode.</div>
-            </div>
-            <input type="number" id="loanAmount" step="1" onchange="updateLoanFromDirectInput()" oninput="updateLoanFromDirectInput()">
-        </div>
-        <div class="input-group" id="interestRateGroup">
-            <div class="label-wrapper">
-                <label>Long-Term Interest Rate (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Annual interest paid on borrowed money over the long term. A common assumption is ~<span id="interest-rate-tooltip"></span> based on historical prime rates plus lender spread. Higher rates require higher market returns to profit.</div>
-            </div>
-            <input type="number" id="interestRate" step="0.1" onchange="handleInterestRateChange()" oninput="handleInterestRateChange()">
-        </div>
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label>Min. Monthly Payment ($)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">The minimum monthly payment toward debt. Set by Payment Type: Custom (user-defined), Interest Only (covers interest accrual only), or Standard Mode (<span id="payment-pct-tooltip"></span> of amortized payment). Budget amounts exceeding the minimum allocate to investments.</div>
-            </div>
-            <input type="number" id="minPayment" onchange="syncMinPayment()">
-        </div>
-        <div class="input-group" id="paymentTypeGroup">
-            <div class="label-wrapper">
-                <label>Payment Type</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Custom Amount: Set a specific monthly payment (default $0). Interest Only: Pay only monthly interest. Standard Mode: Pay <span id="payment-pct-tooltip-2"></span> of the amortized payment amount.</div>
-            </div>
-            <select id="paymentType" onchange="updatePaymentType()">
-                <option value="custom">Custom Amount</option>
-                <option value="interest">Interest Only</option>
-                <option value="standard" id="payment-standard-option">Standard Mode (50% Amortization)</option>
-            </select>
-        </div>
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label>Stock Market Growth (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Expected annual return. The S&P 500 has averaged ~<span id="growth-tooltip"></span> historically. This is the expected return—actual results vary year to year.</div>
-            </div>
-            <input type="number" id="growth" step="0.1">
-        </div>
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label>Market Volatility (Annual %)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">How wild the swings get. <span id="volatility-tooltip"></span> is standard stock market volatility (S&P 500). This simulator uses this to generate realistic scenarios where some years are +30% and others are -20%.</div>
-            </div>
-            <input type="number" id="vol" step="0.1">
-        </div>
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label>Margin Call Threshold (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">The maximum Loan-to-Value before forced liquidation. <span id="margin-call-tooltip"></span> is conservative. More aggressive lenders allow up to 75-80%; more conservative lenders enforce 40-50%.</div>
-            </div>
-            <input type="number" id="marginCall" step="0.1">
-        </div>
-        <div class="input-group">
-            <div class="label-wrapper">
-                <label>Inflation Rate (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Annual inflation rate used to convert nominal wealth to real dollars (today's purchasing power). Locked to <span id="inflation-tooltip"></span> in Standard Mode based on long-term expectations.</div>
-            </div>
-            <input type="number" id="inflationRate" step="0.1">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <input type="range" id="ltvSlider" min="0" max="50" step="1" value="20" oninput="updateLoanFromSlider()" style="flex: 1;">
+            <div style="min-width: 50px; font-weight: 600; color: #2196F3; text-align: right;"><span id="ltvDisplay">20</span>%</div>
         </div>
     </div>
-
-    <button class="calc-btn" id="calculateBtn" onclick="handleCalculate()">Calculate</button>
-
-    <div id="results">
-        <div id="summary" class="summary-box"></div>
-        
-
-                <!-- Histogram Chart -->
-        <div id="histogramChart"></div>
-        
-        <!-- Deposits Over Time Line Chart -->
-        <div id="depositsLineChart"></div>
-
-                <!-- Interactive Slider for Strategy Exploration -->
-        <div class="slider-container">
-            <h3 style="margin-top: 0; border: none;">Explore Payment Strategies</h3>
-            <p style="margin-bottom: 16px; font-size: 0.9rem;">
-                    <strong>💡 How to Use the Slider:</strong> Adjust the monthly payment to see how paying down debt faster shifts the probabilities of profiting. Compare the three-zone grid below to find your optimal strategy.
-                      </p>
-                    
-                    <p>  Each position represents a percentage of the full amortization payment. Percentages above 100% amortization mean you pay off the loan early.</p>
-          
-            <div class="slider-labels">
-                <span>Min Payment (Aggressive)</span>
-                <span>Monthly Budget (Conservative)</span>
-            </div>
-            <input type="range" id="strategySlider" class="strategy-slider" min="0" max="19" step="1" value="0">
-
-            <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196F3; font-size: 0.85rem; color: #555;">
-                <p style="margin: 0;">
-                    <strong>Payment Reference:</strong> You are paying <strong><span id="selectedPaymentAmount">$0</span>/month</strong>, which is <strong><span id="paymentPercentAmortization">0</span>%</strong> of amortization and <strong><span id="paymentPercentBudget">0</span>%</strong> of your monthly budget.
-                </p>
-            </div>
+    <div class="input-group" id="loanAmountGroup">
+        <div class="label-wrapper">
+            <label>Initial Loan Amount ($)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Initial borrowing at t=0, calculated from your deposit and target LTV. In leveraged DCA, borrowing continues dynamically each month as the algorithm maintains the target LTV. This field shows the starting position only.</div>
         </div>
+        <input type="number" id="loanAmount" step="1" onchange="updateLoanFromDirectInput()" oninput="updateLoanFromDirectInput()">
+    </div>
+    <div class="input-group" id="interestRateGroup">
+        <div class="label-wrapper">
+            <label>Borrowing Rate (%)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Annual interest rate on borrowed capital. A common assumption is ~<span id="interest-rate-tooltip"></span> based on historical prime rates plus lender spread. This cost accrues on outstanding debt every month. Higher rates require higher market returns for leverage to be profitable.</div>
+        </div>
+        <input type="number" id="interestRate" step="0.1" onchange="handleInterestRateChange()" oninput="handleInterestRateChange()">
+    </div>
+    <div class="input-group">
+        <div class="label-wrapper">
+            <label>Expected Annual Return (%)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Expected annual return of the underlying portfolio. The S&amp;P 500 has averaged ~<span id="growth-tooltip"></span> historically. This is the drift parameter in geometric Brownian motion. Actual monthly returns vary significantly around this mean.</div>
+        </div>
+        <input type="number" id="growth" step="0.1">
+    </div>
+    <div class="input-group">
+        <div class="label-wrapper">
+            <label>Market Volatility (Annual %)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Annual standard deviation of portfolio returns. <span id="volatility-tooltip"></span> reflects typical S&amp;P 500 volatility. The simulator uses this to generate realistic monthly scenarios: some months +8%, others -6%. Higher volatility increases both upside potential and margin call probability.</div>
+        </div>
+        <input type="number" id="vol" step="0.1">
+    </div>
+    <div class="input-group">
+        <div class="label-wrapper">
+            <label>Margin Call Threshold (%)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">The maximum LTV before the lender forces liquidation. If LTV exceeds this threshold at any point, the portfolio is liquidated and the simulation records ruin. <span id="margin-call-tooltip"></span> is standard.</div>
+        </div>
+        <input type="number" id="marginCall" step="0.1">
+    </div>
+    <div class="input-group">
+        <div class="label-wrapper">
+            <label>Inflation Rate (%)</label>
+            <div class="tooltip-icon">?</div>
+            <div class="tooltip-popup">Annual inflation rate used to convert nominal wealth to real dollars (today's purchasing power). Locked to <span id="inflation-tooltip"></span> in Standard Mode based on long-term historical averages.</div>
+        </div>
+        <input type="number" id="inflationRate" step="0.1">
+    </div>
+</div>
+
+<button class="calc-btn" id="calculateBtn" onclick="handleCalculate()">Calculate</button>
+
+<div id="results">
+    <div id="summary" class="summary-box"></div>
+
+    <!-- Histogram Chart -->
+    <div id="histogramChart"></div>
+    
+    <!-- Deposits Over Time Line Chart -->
+    <div id="depositsLineChart"></div>
+
+    <!-- Interactive Slider for Strategy Exploration -->
+    <div class="slider-container">
+        <h3 style="margin-top: 0; border: none;">Explore Target LTVs</h3>
+        <p style="margin-bottom: 16px; font-size: 0.9rem;">
+            <strong>How to Use the Slider:</strong> Adjust the target LTV to see how higher leverage shifts the probabilities of profit and ruin. Compare the three-zone grid below to find your optimal risk-reward balance.
+        </p>
         
-        <!-- Dynamic Strategy Summary -->
-        <div id="dynamicSummary" class="strategy-summary"></div>
-        
+        <p>Each position represents a different target LTV. Higher LTV means more leverage, more potential return, and more risk of ruin.</p>
+          
+        <div class="slider-labels">
+            <span>Conservative (Low LTV)</span>
+            <span>Aggressive (High LTV)</span>
+        </div>
+        <input type="range" id="strategySlider" class="strategy-slider" min="0" max="19" step="1" value="0">
+
+        <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196F3; font-size: 0.85rem; color: #555;">
+            <p style="margin: 0;">
+                <strong>Current Position:</strong> Target LTV of <strong><span id="selectedPaymentAmount">--</span>%</strong>, with <strong><span id="paymentPercentAmortization">--</span>%</strong> survival rate and <strong><span id="paymentPercentBudget">--</span>%</strong> probability of beating DCA.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Dynamic Strategy Summary -->
+    <div id="dynamicSummary" class="strategy-summary"></div>
+</div>
 
                
     </div>

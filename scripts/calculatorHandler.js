@@ -88,7 +88,6 @@ function setMode(mode) {
         document.getElementById('inflationRate').value = STANDARD_MODE_DEFAULTS.INFLATION_RATE;
         
         // Set payment type to standard
-        document.getElementById('paymentType').value = 'standard';
         
         // Cap LTV at 35% if it was higher in custom mode
         let currentLtv = parseFloat(ltvSlider.value);
@@ -116,8 +115,6 @@ function setMode(mode) {
         loanAmountInput.readOnly = false;
         loanAmountInput.style.backgroundColor = '';
         loanAmountInput.style.cursor = '';
-        
-        document.getElementById('minPayment').value = 0;
         
         // Update budget warning for custom mode
         updateBudgetWarningCustom();
@@ -333,53 +330,12 @@ function handleBudgetOrPeriodChange() {
 /**
  * Sync Minimum Payment
  */
-function syncMinPayment() {
-    const paymentType = document.getElementById('paymentType').value;
-    const loan = parseFloat(document.getElementById('loanAmount').value);
-    const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
-    const years = parseFloat(document.getElementById('loanPeriod').value);
-    const months = years * 12;
-    const mRate = annualRate / 12;
-    const monthlyInterest = loan * (annualRate / 12);
-    const amortizedPayment = loan * (mRate * Math.pow(1 + mRate, months)) / (Math.pow(1 + mRate, months) - 1);
-    
-    if (paymentType === 'interest') {
-        document.getElementById('minPayment').value = monthlyInterest.toFixed(2);
-    } else if (paymentType === 'standard') {
-        const standardPayment = amortizedPayment * (STANDARD_MODE_DEFAULTS.PAYMENT_PERCENTAGE / 100);
-        document.getElementById('minPayment').value = standardPayment.toFixed(2);
-    }
-}
+function syncMinPayment() {}
 
 /**
  * Update Payment Type
  */
-function updatePaymentType() {
-    const paymentType = document.getElementById('paymentType').value;
-    const loan = parseFloat(document.getElementById('loanAmount').value);
-    const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
-    const years = parseFloat(document.getElementById('loanPeriod').value);
-    const months = years * 12;
-    const mRate = annualRate / 12;
-    const monthlyInterest = loan * (annualRate / 12);
-    const amortizedPayment = loan * (mRate * Math.pow(1 + mRate, months)) / (Math.pow(1 + mRate, months) - 1);
-    
-    if (paymentType === 'interest') {
-        document.getElementById('minPayment').value = monthlyInterest.toFixed(2);
-        document.getElementById('minPayment').disabled = true;
-    } else if (paymentType === 'standard') {
-        // Calculate PAYMENT_PERCENTAGE of amortized payment
-        const standardPayment = amortizedPayment * (STANDARD_MODE_DEFAULTS.PAYMENT_PERCENTAGE / 100);
-        document.getElementById('minPayment').value = standardPayment.toFixed(2);
-        document.getElementById('minPayment').disabled = true;
-    } else {
-        // custom - default to 0
-        if (currentMode !== 'standard') {
-            document.getElementById('minPayment').value = 0;
-        }
-        document.getElementById('minPayment').disabled = false;
-    }
-}
+function updatePaymentType() {}
 
 /**
  * Main Simulation Runner - Uses WebAssembly if available, falls back to JS
@@ -393,7 +349,7 @@ async function runSimulation() {
 
     try {
         console.log('[Script] Calling runSimulationWithAdapter()...');
-        const results = await runSimulationWithAdapter();
+        const results = await runSimulationWithAdapter(getSimulationInputs());
         console.log('[Script] Results received from adapter:', results);
         
         if (!results) {
@@ -416,6 +372,44 @@ async function runSimulation() {
         alert(CopywritingHelpers.getSimulationErrorMessage(error.message));
         return null;
     }
+}
+
+function getSimulationInputs() {
+    const initialEquity = parseFloat(document.getElementById('assetValue').value);
+    const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+    const years = parseFloat(document.getElementById('loanPeriod').value);
+    const monthlyBudget = parseFloat(document.getElementById('monthlyBudget').value);
+    const interestRate = parseFloat(document.getElementById('interestRate').value) / 100;
+    const growth = parseFloat(document.getElementById('growth').value) / 100;
+    const volatility = parseFloat(document.getElementById('vol').value) / 100;
+    const inflation = parseFloat(document.getElementById('inflationRate').value) / 100;
+    const marginCallLTV = parseFloat(document.getElementById('marginCall').value) / 100;
+    const maxLTV = Math.max(0, marginCallLTV - 0.05);
+    const months = years * 12;
+        const monthlyRate = interestRate / 12;
+        const amortizedPayment = monthlyRate === 0 || months === 0
+                ? 0
+                : loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, months)) /
+                    (Math.pow(1 + monthlyRate, months) - 1);
+    return {
+        initialEquity,
+        loanAmount,
+        years,
+        monthlyBudget,
+        interestRate,
+        monthlyRate,
+        amortizedPayment,
+        growth,
+        volatility,
+        inflation,
+        marginCallLTV,
+        maxLTV,
+        simulationCount: UI_CONSTANTS.SIMULATION_COUNT,
+        baselineSimulationCount: UI_CONSTANTS.BASE_CASE_SIMULATIONS,
+        numStrategies: UI_CONSTANTS.NUM_STRATEGIES - 1,
+        modelId: STANDARD_MODE_DEFAULTS.MODEL_ID,
+        months
+    };
 }
 
 
@@ -454,7 +448,7 @@ function findTargetStrategyIndex(targetSurvival) {
  * Render Histogram for a Specific Strategy
  * Uses "0 to Mean + 1 Sigma" filtering for performance and ethical display
  */
-function renderHistogram(strategyIndex) {
+function renderHistogramLegacy(strategyIndex) {
     console.log('[Histogram] renderHistogram called with index:', strategyIndex);
     
     if (!simulationResults) {
@@ -709,23 +703,8 @@ function renderHistogram(strategyIndex) {
  * Detect investing mode based on strategy characteristics
  * Returns 'lifecycle' or 'margin'
  */
-function detectInvestingMode(strategy, loanDetails) {
-    const paymentAmount = strategy.paymentAmount;
-    const loanAmount = loanDetails.loanAmount;
-    const monthlyInterest = loanAmount * (loanDetails.interestRate / 12);
-    const initialEquity = loanDetails.initialEquity;
-    const ltv = (loanAmount / (loanAmount + initialEquity)) * 100;
-    
-    // Margin indicators: interest-only payments, high LTV, minimal principal paydown
-    const isInterestOnly = Math.abs(paymentAmount - monthlyInterest) < (monthlyInterest * 0.1);
-    const isHighLTV = ltv > 40;
-    const isMinimalPayment = paymentAmount < (loanAmount * 0.005); // Less than 0.5% of loan per month
-    
-    if ((isInterestOnly || isMinimalPayment) && isHighLTV) {
-        return 'margin';
-    }
-    
-    return 'lifecycle';
+function detectInvestingMode() {
+    return "target-ltv";
 }
 
 function updateSummary(strategyIndex) {
@@ -743,8 +722,8 @@ function updateSummary(strategyIndex) {
     
     const summaryBox = document.getElementById('dynamicSummary');
     const monthlyBudget = loanDetails.monthlyBudget;
-    const debtPayment = strategy.paymentAmount;
-    const marketInvestment = strategy.surplusAmount;
+    const debtPayment = strategy.targetLTV * 100;
+    const marketInvestment = strategy.targetLTV * 100;
     const medianRealWealth = strategy.medianWealth;
     const survivalRate = strategy.survivalRate;
     const benchmarkMedian = strategy.benchmarkMedian;
@@ -944,14 +923,14 @@ function renderDepositsLineChart(strategyIndex) {
     const loanDetails = simulationResults.loanDetails;
     
     console.log('[DepositsLineChart] Strategy data:', {
-        hasDepositPath: !!strategy.depositPath,
+        hasSecuritiesPath: !!strategy.meanSecuritiesPath,
         hasDebtPath: !!strategy.debtPath,
-        depositPathLength: strategy.depositPath?.length,
+        securitiesPathLength: strategy.meanSecuritiesPath?.length,
         debtPathLength: strategy.debtPath?.length
     });
     
     // Integration layer must provide complete data
-    if (!strategy.depositPath || !strategy.debtPath || !benchmark.depositPath) {
+    if (!strategy.meanSecuritiesPath || !strategy.debtPath || !benchmark.meanSecuritiesPath) {
         console.error('[DepositsLineChart] Missing cash flow schedules from integration layer');
         document.getElementById('depositsLineChart').innerHTML = '<p style="color: red; text-align: center;">Error: Integration layer did not provide complete schedule data</p>';
         return;
@@ -965,31 +944,13 @@ function renderDepositsLineChart(strategyIndex) {
         timePoints.push(month / 12);
     }
     
-    // Calculate cumulative deposits - depositPath now includes T=0 initial capital at index 0
     const nonLeverageDeposits = [];
     const leverageDeposits = [];
     const debtBalance = [];
-    
-    let nonLeverageSum = 0;
-    let leverageSum = 0;
-    
     for (let month = 0; month <= months; month++) {
-        // depositPath[0] = initial capital at T=0
-        // depositPath[1..months] = monthly contributions
-        // Cumulative at month M = sum of depositPath[0..M]
-        if (month < benchmark.depositPath.length) {
-            nonLeverageSum += benchmark.depositPath[month] || 0;
-        }
-        if (month < strategy.depositPath.length) {
-            leverageSum += strategy.depositPath[month] || 0;
-        }
-        
-        nonLeverageDeposits.push(nonLeverageSum);
-        leverageDeposits.push(leverageSum);
-        
-        // Debt balance: debtPath[month] is debt at end of month
-        const debtAtMonth = month < strategy.debtPath.length ? strategy.debtPath[month] : 0;
-        debtBalance.push(debtAtMonth);
+        nonLeverageDeposits.push(benchmark.meanSecuritiesPath[month] || 0);
+        leverageDeposits.push(strategy.meanSecuritiesPath[month] || 0);
+        debtBalance.push(strategy.debtPath[month] || 0);
     }
     
     console.log('[DepositsLineChart] Cumulative deposits calculated');
@@ -1005,12 +966,12 @@ function renderDepositsLineChart(strategyIndex) {
         y: nonLeverageDeposits,
         type: 'scatter',
         mode: 'lines',
-        name: 'Total Deposits (No Leverage)',
+        name: 'Securities (No Leverage)',
         line: {
             color: '#2196F3',  // Blue
             width: 3
         },
-        hovertemplate: '<b>No Leverage</b><br>Time: %{x:.1f} years<br>Total Deposits: $%{y:,.0f}<extra></extra>'
+        hovertemplate: '<b>No Leverage</b><br>Time: %{x:.1f} years<br>Securities: $%{y:,.0f}<extra></extra>'
     };
     
     const leverageTrace = {
@@ -1018,12 +979,12 @@ function renderDepositsLineChart(strategyIndex) {
         y: leverageDeposits,
         type: 'scatter',
         mode: 'lines',
-        name: 'Total Deposits (With Leverage)',
+        name: 'Securities (With Leverage)',
         line: {
             color: '#9C27B0',  // Purple
             width: 3
         },
-        hovertemplate: '<b>With Leverage</b><br>Time: %{x:.1f} years<br>Total Deposits: $%{y:,.0f}<extra></extra>'
+        hovertemplate: '<b>With Leverage</b><br>Time: %{x:.1f} years<br>Securities: $%{y:,.0f}<extra></extra>'
     };
     
     const debtTrace = {
@@ -1079,6 +1040,42 @@ function renderDepositsLineChart(strategyIndex) {
     return Plotly.newPlot('depositsLineChart', [nonLeverageTrace, leverageTrace, debtTrace], layout, config);
 }
 
+function renderSecuritiesDebtChart(strategyIndex) {
+    if (!simulationResults || typeof Plotly === 'undefined') return;
+
+    const strategy = simulationResults.strategies[strategyIndex];
+    if (!strategy || !strategy.meanSecuritiesPath || !strategy.meanDebtPath) return;
+
+    const months = strategy.months;
+    const timePoints = Array.from({ length: months + 1 }, (_, month) => month / 12);
+    const traces = [
+        {
+            x: timePoints,
+            y: strategy.meanSecuritiesPath,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Average Securities',
+            line: { color: '#1976D2', width: 2 }
+        },
+        {
+            x: timePoints,
+            y: strategy.meanDebtPath,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Average Debt',
+            line: { color: '#C62828', width: 2 }
+        }
+    ];
+
+    return Plotly.newPlot('securitiesDebtChart', traces, {
+        title: 'Average Securities and Debt',
+        xaxis: { title: 'Years' },
+        yaxis: { title: 'Real value ($)' },
+        hovermode: 'x unified',
+        margin: { t: 48, r: 24, b: 48, l: 64 }
+    }, { responsive: true });
+}
+
 /**
  * Display Results and Initialize Interactive Elements
  * @param {Object} results - Full results object from adapter {strategies, loanDetails, benchmark}
@@ -1092,8 +1089,8 @@ function displayResults(results) {
     
     // Calculate amortization details
     const totalPayments = amortizedPayment * loanDetails.months;
-    const totalInterest = totalPayments - loanDetails.loanAmount;
-    const presentValue = loanDetails.loanAmount;
+    const totalInterest = Math.max(0, totalPayments - loanDetails.loanAmount);
+    const presentValue = loanDetails.initialEquity;
     
     // Find strategies with target survival rate
     const safeStrategies = data.filter(d => d.survivalRate >= riskTarget);
@@ -1112,7 +1109,7 @@ function displayResults(results) {
             </div>
             <strong>Default Strategy Selection (Risk-Based):</strong><br><br>
             Your risk profile targets <strong>${riskTarget}% survival</strong>. The slider starts at the closest strategy that meets or exceeds this target.<br><br>
-            Selected Strategy: <strong>$${targetStrategy.paymentAmount.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> per month
+            Selected Strategy: <strong>$${(targetStrategy.targetLTV * 100).toFixed(1) + "% LTV"}</strong> per month
             with <strong>${targetStrategy.survivalRate.toFixed(1)}%</strong> survival.<br><br>
             <em style="font-size: 0.9rem;">Use the slider below to explore different payment strategies from minimum required to your full monthly budget.</em>
         `;
@@ -1147,6 +1144,7 @@ function displayResults(results) {
     // Render deposits over time line chart
     console.log('[DisplayResults] Rendering deposits line chart for strategy index:', targetIndex);
     renderDepositsLineChart(targetIndex);
+    renderSecuritiesDebtChart(targetIndex);
 }
 
 /**
@@ -1157,6 +1155,7 @@ function handleSliderChange(event) {
     updateSliderPills(strategyIndex);
     renderHistogram(strategyIndex);
     renderDepositsLineChart(strategyIndex);
+    renderSecuritiesDebtChart(strategyIndex);
     updateSummary(strategyIndex);
 }
 
@@ -1192,7 +1191,6 @@ async function handleCalculate() {
 function updateSliderPills(activeIndex) {
     if (!simulationResults) return;
     
-    const amortizedPayment = simulationResults.loanDetails.amortizedPayment;
     const monthlyBudget = simulationResults.loanDetails.monthlyBudget;
     const selectedStrategy = simulationResults.strategies[activeIndex];
     
@@ -1204,10 +1202,10 @@ function updateSliderPills(activeIndex) {
     const paymentPercentBudgetSpan = document.getElementById('paymentPercentBudget');
     
     if (selectedPaymentAmountSpan && paymentPercentAmortizationSpan && paymentPercentBudgetSpan) {
-        selectedPaymentAmountSpan.textContent = `$${Math.round(selectedStrategy.paymentAmount).toLocaleString()}`;
+        selectedPaymentAmountSpan.textContent = (selectedStrategy.targetLTV * 100).toFixed(1) + "%";
         
-        const percentOfAmortization = (selectedStrategy.paymentAmount / amortizedPayment) * 100;
-        const percentOfBudget = (selectedStrategy.paymentAmount / monthlyBudget) * 100;
+        const percentOfAmortization = selectedStrategy.survivalRate;
+        const percentOfBudget = selectedStrategy.trinaryStats?.profitPercent || 0;
         
         paymentPercentAmortizationSpan.textContent = Math.round(percentOfAmortization);
         paymentPercentBudgetSpan.textContent = Math.round(percentOfBudget);
@@ -1218,7 +1216,7 @@ function updateSliderPills(activeIndex) {
  * Input Validation
  */
 function validateInputs() {
-    const inputs = ['loanAmount', 'loanPeriod', 'assetValue', 'minPayment', 'monthlyBudget', 'interestRate', 'growth', 'vol', 'marginCall', 'inflationRate'];
+    const inputs = ['loanPeriod', 'assetValue', 'monthlyBudget', 'interestRate', 'growth', 'vol', 'marginCall', 'inflationRate'];
     
     for (const id of inputs) {
         const element = document.getElementById(id);
@@ -1240,6 +1238,48 @@ function validateInputs() {
  * Initialize Application
  */
 document.addEventListener('DOMContentLoaded', () => {
+    const setText = (id, text) => {
+        const element = document.getElementById(id);
+        if (element) element.textContent = text;
+    };
+
+    const copy = {
+        'growth-tooltip': CopywritingHelpers.getGrowthRateText(),
+        'volatility-tooltip': CopywritingHelpers.getVolatilityText(),
+        'interest-rate-tooltip': CopywritingHelpers.getInterestRateText(),
+        'margin-call-tooltip': CopywritingHelpers.getMarginCallText(),
+        'inflation-tooltip': CopywritingHelpers.getInflationText(),
+        'interest-assumptions': CopywritingHelpers.getInterestRateText(),
+        'growth-assumptions': CopywritingHelpers.getGrowthRateText(),
+        'volatility-assumptions': CopywritingHelpers.getVolatilityText(),
+        'margin-assumptions': CopywritingHelpers.getMarginCallText(),
+        'inflation-assumptions': CopywritingHelpers.getInflationText(),
+        'sim-count-method': CopywritingHelpers.getSimulationCountText(),
+        'sim-count-step3-2': CopywritingHelpers.getSimulationCountText(),
+        'baseline-sims-step3-2': CopywritingHelpers.getBaseCaseSimulationsText(),
+        'loan-period-assumptions': DEFAULT_INPUTS.LOAN_PERIOD,
+        'loan-period-inflation': DEFAULT_INPUTS.LOAN_PERIOD,
+        'loan-period-economics': DEFAULT_INPUTS.LOAN_PERIOD,
+        'num-strategies-step2': UI_CONSTANTS.NUM_STRATEGIES - 1
+    };
+    Object.entries(copy).forEach(([id, text]) => setText(id, text));
+
+    document.getElementById('jumpToCalculator')?.addEventListener('click', () => {
+        document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
+    });
+    document.getElementById('standardMode')?.addEventListener('click', () => setMode('standard'));
+    document.getElementById('customMode')?.addEventListener('click', () => setMode('custom'));
+    document.getElementById('riskAggressive')?.addEventListener('click', () => setRiskProfile('aggressive'));
+    document.getElementById('riskMedian')?.addEventListener('click', () => setRiskProfile('median'));
+    document.getElementById('riskConservative')?.addEventListener('click', () => setRiskProfile('conservative'));
+    document.getElementById('calculateBtn')?.addEventListener('click', handleCalculate);
+    document.getElementById('loanPeriod')?.addEventListener('input', handleBudgetOrPeriodChange);
+    document.getElementById('monthlyBudget')?.addEventListener('input', handleBudgetOrPeriodChange);
+    document.getElementById('assetValue')?.addEventListener('input', updateLoanFromCollateral);
+    document.getElementById('ltvSlider')?.addEventListener('input', updateLoanFromSlider);
+    document.getElementById('loanAmount')?.addEventListener('input', updateLoanFromDirectInput);
+    document.getElementById('interestRate')?.addEventListener('input', handleInterestRateChange);
+
     // Initialize input values from config
     document.getElementById('loanPeriod').value = DEFAULT_INPUTS.LOAN_PERIOD;
     document.getElementById('monthlyBudget').value = DEFAULT_INPUTS.MONTHLY_BUDGET;
@@ -1256,9 +1296,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set initial mode to standard
     setMode('standard');
     
-    // Attach slider event listener
+    // Attach strategy slider event listener
     const slider = document.getElementById('strategySlider');
     if (slider) {
         slider.addEventListener('input', handleSliderChange);
     }
 });
+
+// Plotly owns histogram binning; stats owns the scenario population and values.
+function renderHistogram(strategyIndex) {
+    if (!simulationResults || typeof Plotly === 'undefined') return;
+    const strategy = simulationResults.strategies[strategyIndex];
+    const benchmark = simulationResults.benchmark;
+    if (!strategy || !benchmark) return;
+
+    return Plotly.newPlot('histogramChart', [
+        {
+            x: benchmark.finalWealthArray,
+            type: 'histogram',
+            histnorm: 'probability',
+            name: 'DCA Benchmark',
+            opacity: 0.55,
+            marker: { color: UI_CONSTANTS.HISTOGRAM_COLORS.benchmark }
+        },
+        {
+            x: strategy.finalWealthArray,
+            type: 'histogram',
+            histnorm: 'probability',
+            name: `Target LTV ${((strategy.targetLTV || 0) * 100).toFixed(0)}%`,
+            opacity: 0.65,
+            marker: { color: UI_CONSTANTS.HISTOGRAM_COLORS.overperformed }
+        }
+    ], {
+        title: `Final Real Wealth (Strategy ${strategyIndex + 1})`,
+        barmode: 'overlay',
+        xaxis: { title: 'Final Real Wealth (Today\'s Purchasing Power)', tickformat: '$,.0f' },
+        yaxis: { title: 'Probability', tickformat: '.0%' },
+        margin: { t: 64, b: 72, l: 72, r: 24 },
+        autosize: true
+    }, { responsive: true, displaylogo: false });
+}

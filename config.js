@@ -5,6 +5,7 @@
 
 // Standard Mode Default Values (Research-backed assumptions)
 const STANDARD_MODE_DEFAULTS = {
+    MODEL_ID: 1,               // 0 = GBM, 1 = Merton jump-diffusion
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
     INTEREST_RATE: 7.0,       // Prime + 1% spread (%)
     GROWTH_RATE: 10,         // Historical S&P 500 return (%)
@@ -16,8 +17,8 @@ const STANDARD_MODE_DEFAULTS = {
 // Default Input Values
 const DEFAULT_INPUTS = {
     LOAN_PERIOD: 30,           // Default simulation period (years)
-    MONTHLY_BUDGET: 200,       // Default monthly budget ($)
-    STARTING_DEPOSIT: 30000,   // Default collateral value ($)
+    MONTHLY_BUDGET: 500,       // Default monthly budget ($)
+    STARTING_DEPOSIT: 10000,   // Default collateral value ($)
     STARTING_LTV: 20.0         // Default starting LTV (%)
 };
 
@@ -48,24 +49,27 @@ const UI_CONSTANTS = {
 };
 
 /**
- * Calculate required WASM output buffer size
- * Formula: 2 header + (8 + BASE_CASE_SIMS) + (NUM_STRATS - 1) * (8 + SIM_COUNT)
+ * Calculate required WASM tensor buffer size for one worker.
+ * Formula: raw header + state variables * scenarios * (months + 1)
  * 
  * WARNING: If you change simulation counts, the buffer must be large enough!
  */
 function calculateRequiredBufferSize() {
-    const headerSize = 2;
-    const scenarioHeaderSize = 8;
-    const benchmarkSize = scenarioHeaderSize + UI_CONSTANTS.BASE_CASE_SIMULATIONS;
-    const leveragedSize = (UI_CONSTANTS.NUM_STRATEGIES - 1) * 
-                          (scenarioHeaderSize + UI_CONSTANTS.SIMULATION_COUNT);
-    const totalRequired = headerSize + benchmarkSize + leveragedSize;
+    const rawHeaderSize = 9;
+    const stateCount = 3;
+    const months = DEFAULT_INPUTS.LOAN_PERIOD * 12;
+    const maxScenarios = Math.max(
+        UI_CONSTANTS.BASE_CASE_SIMULATIONS,
+        UI_CONSTANTS.SIMULATION_COUNT
+    );
+    const totalRequired = rawHeaderSize + stateCount * maxScenarios * (months + 1);
+    const allocated = 24000000;
     
     return {
         required: totalRequired,
-        allocated: 800000,  // Must match assembly/index.ts outputBuffer size
-        isValid: totalRequired <= 800000,
-        utilizationPercent: (totalRequired / 800000 * 100).toFixed(1)
+        allocated,
+        isValid: totalRequired <= allocated,
+        utilizationPercent: (totalRequired / allocated * 100).toFixed(1)
     };
 }
 
@@ -77,8 +81,7 @@ if (typeof window !== 'undefined') {
             `⚠️ BUFFER OVERFLOW WARNING!\n` +
             `Required: ${bufferInfo.required.toLocaleString()} f64 values\n` +
             `Allocated: ${bufferInfo.allocated.toLocaleString()} f64 values\n` +
-            `You must reduce SIMULATION_COUNT or BASE_CASE_SIMULATIONS in config.js\n` +
-            `or increase outputBuffer size in assembly/index.ts and rebuild (npm run asbuild)`
+            `Reduce simulation counts or increase the matching AssemblyScript buffers and rebuild.`
         );
     } else {
         console.log(

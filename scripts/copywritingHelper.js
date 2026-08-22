@@ -190,7 +190,7 @@ const CopywritingHelpers = {
      * Generate margin call followup text
      */
     getMarginCallFollowup() {
-        return `If at any point your debt exceeds ${this.getMarginCallText()} of your portfolio's value, the lender sells your positions, pays themselves back, and you're left with $0. The calculator tracks "survival rate"—the percentage of ${this.getSimulationCountText()} simulations where your account doesn't hit this threshold.`;
+        return `If at any point your debt exceeds ${this.getMarginCallText()} of your portfolio's value, the lender sells your positions, pays themselves back, and you're left with $0. The calculator reports liquidation risk separately from survival. Survival means final real wealth is strictly greater than total real deposits.`;
     },
 
     /**
@@ -421,55 +421,18 @@ const CopywritingHelpers = {
      */
     generateVerdict(trinaryStats) {
         if (!trinaryStats) return null;
-        
-        const { ruinPercent, suckerPercent, profitPercent } = trinaryStats;
-        const spreadPercent = profitPercent - suckerPercent;
-        
-        // Get pure classification
-        const classification = this._classifyStrategy(trinaryStats);
-        
-        // Get fix suggestions
-        const fixSuggestion = this._suggestFixes(classification, trinaryStats);
-        
-        // Format for presentation
-        let color = null;
-        let icon = null;
-        let title = null;
-        let message = null;
-        
-        if (classification.isDangerous) {
-            color = '#B3261E';
-            icon = '⛔';
-            title = 'DANGEROUS: UNACCEPTABLE RUIN RISK';
-            message = `You have a <strong>${ruinPercent.toFixed(1)}%</strong> chance of ruin (liquidation or ending with a loss). This exceeds acceptable risk tolerance. Reduce borrowed principal or increase monthly payment significantly.`;
-        } else if (classification.isPointless) {
-            color = '#FF9800';
-            icon = '⚠️';
-            title = 'POINTLESS: ODDS UNFAVORABLE';
-            message = `The probability of outperforming a standard no-debt investment is <strong>${profitPercent.toFixed(1)}%</strong>. Underperformance probability is <strong>${(suckerPercent + ruinPercent).toFixed(1)}%</strong> combined (ruin or negative spread). The borrowing cost exceeds the investment return advantage.`;
-        } else if (classification.isMarginal) {
-            color = '#AFAFAF';
-            icon = '🤔';
-            title = 'MARGINAL: MODERATE EDGE OR ELEVATED RUIN';
-            message = `Spread advantage: <strong>${spreadPercent.toFixed(1)}%</strong> per year. Profit probability: <strong>${profitPercent.toFixed(1)}%</strong>. Underperformance probability: <strong>${suckerPercent.toFixed(1)}%</strong>. Ruin probability: <strong>${ruinPercent.toFixed(1)}%</strong>. Strategy is marginal due to either limited spread advantage (target >20%) or elevated ruin risk (target <2%). Expect mixed outcomes with volatility risk during downturns.`;
-        } else if (classification.isStrong) {
-            color = '#1B5E20';
-            icon = '✅';
-            title = 'STRONG: FAVORABLE RISK-REWARD RATIO';
-            message = `Spread advantage: <strong>${spreadPercent.toFixed(1)}%</strong> per year. Profit probability: <strong>${profitPercent.toFixed(1)}%</strong>. Ruin risk: <strong>${ruinPercent.toFixed(1)}%</strong>. The spread is sufficient to meet industry standards (>20%) with ruin risk contained below 2%. The strategy has mathematical justification relative to risk.`;
-        }
-        
+        const spread = trinaryStats.profitPercent - trinaryStats.suckerPercent;
         return {
-            status: classification.status,
-            color,
-            icon,
-            title,
-            message,
-            ruinPercent,
-            suckerPercent,
-            profitPercent,
-            spread: spreadPercent,
-            fixSuggestion
+            status: 'RESULTS_AVAILABLE',
+            color: '#333333',
+            icon: '',
+            title: 'Simulation results',
+            message: '',
+            ruinPercent: trinaryStats.ruinPercent,
+            suckerPercent: trinaryStats.suckerPercent,
+            profitPercent: trinaryStats.profitPercent,
+            spread,
+            fixSuggestion: []
         };
     },
 
@@ -478,14 +441,7 @@ const CopywritingHelpers = {
      * Kept for backward compatibility during refactoring
      */
     generateDiagnosticFix(category, trinaryStats) {
-        // Legacy interface - convert category to classification object
-        const classification = {
-            isDangerous: category === 'dangerous',
-            isPointless: category === 'pointless',
-            isMarginal: category === 'marginal',
-            isStrong: category === 'strong'
-        };
-        return this._suggestFixes(classification, trinaryStats);
+        return [];
     },
 
     /**

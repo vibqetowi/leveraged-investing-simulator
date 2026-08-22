@@ -1,18 +1,17 @@
 /** Exported memory */
 export declare const memory: WebAssembly.Memory;
 /**
- * assembly/index/getInputPtr
+ * assembly/stats/getInputPtr
  * @returns `usize`
  */
 export declare function getInputPtr(): number;
 /**
- * assembly/index/getOutputPtr
+ * assembly/stats/getOutputPtr
  * @returns `usize`
  */
 export declare function getOutputPtr(): number;
 /**
- * assembly/index/runSimulation
- * @param providerId `i32`
+ * assembly/stats/runStats
  * @returns `i32`
  */
-export declare function runSimulation(providerId: number): number;
+export declare function runStats(): number;

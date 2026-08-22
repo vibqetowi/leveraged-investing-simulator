@@ -1,181 +1,114 @@
 /**
- * Web Worker - WASM Bridge for Single Strategy Simulation
- * 
- * This worker:
- * 1. Receives initial conditions for ONE strategy
- * 2. Marshals data to WASM input buffer
- * 3. Calls WASM runSimulation()
- * 4. Unmarshals results from WASM output buffer
- * 5. Returns schedule + wealth array to main thread
- * 
- * WASM Input Format (11 values):
- * [0] initialDebt - amount owed at t=0
- * [1] initialBalance - cash/assets at t=0
- * [2] monthlyPayment - debt payment per month (0 if no debt)
- * [3] monthlyBudget - deposits available per month
- * [4] monthlyRate - interest rate as decimal (0 if no debt)
- * [5] years - simulation duration
- * [6] volatility - standard deviation of returns
- * [7] growth - expected annual return
- * [8] inflation - inflation rate
- * [9] marginCallLTV - debt/assets ratio threshold for failure
- * [10] simulationCount - number of Monte Carlo runs
- * 
- * WASM Output Format:
- * [0] status (0 = success)
- * [1] months (calculated from years)
- * [2] survivalRate (percent)
- * [3] medianWealth (real dollars)
- * [4] p90Wealth (real dollars)
- * [5] expectedWealth (real dollars)
- * [6] finalDebt (remaining debt at end of schedule)
- * [7] totalDeposits (sum of deposits over period)
- * [8] numSurvived (count of non-failed simulations)
- * [9 to 9+months] depositPath[] - T=0 initial capital, then monthly deposits (months+1 elements)
- * [9+months+1 to 9+2*months+1] debtPath[] - T=0 initial debt, then monthly balances (months+1 elements)
- * [9+2*months+2 onward] wealthArray[] - final wealth of survivors
+ * WASM bridge for one strategy. The simulator returns raw tensors; the stats
+ * module consumes that tensor and returns chart-ready aggregates.
  */
+let simInstance = null;
+let statsInstance = null;
+let simMemory = null;
+let statsMemory = null;
 
-let wasmInstance = null;
-let wasmMemory = null;
+async function loadModule(path) {
+    const response = await fetch(path);
+    if (!response.ok) throw new Error(`Failed to fetch ${path}: HTTP ${response.status}`);
+    const buffer = await response.arrayBuffer();
+    return (await WebAssembly.instantiate(buffer, {
+        env: { abort: () => {}, seed: () => Math.random() }
+    })).instance;
+}
 
-// Load and instantiate WebAssembly module
 async function initWasm() {
-    if (wasmInstance) return; // Already initialized
-    
-    try {
-        const response = await fetch('../build/sim.wasm');
-        if (!response.ok) {
-            throw new Error(`Failed to fetch WASM module: HTTP ${response.status} ${response.statusText}`);
-        }
-        
-        const buffer = await response.arrayBuffer();
-        const wasmModule = await WebAssembly.instantiate(buffer, {
-            env: {
-                abort: (msg, file, line, col) => {
-                    console.error(`Wasm abort: ${msg} at ${file}:${line}:${col}`);
-                },
-                seed: () => Math.random()
-            }
-        });
-        
-        wasmInstance = wasmModule.instance;
-        wasmMemory = wasmInstance.exports.memory;
-        
-        // Verify required exports exist
-        if (!wasmInstance.exports.getInputPtr) {
-            throw new Error('WASM module missing getInputPtr export');
-        }
-        if (!wasmInstance.exports.getOutputPtr) {
-            throw new Error('WASM module missing getOutputPtr export');
-        }
-        if (!wasmInstance.exports.runSimulation) {
-            throw new Error('WASM module missing runSimulation export');
-        }
-        if (!wasmInstance.exports.memory) {
-            throw new Error('WASM module missing memory export');
-        }
-        
-        console.log('[Worker] WebAssembly module loaded successfully');
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error('[Worker] Failed to load WebAssembly:', errorMessage);
-        throw new Error(`WASM initialization failed: ${errorMessage}`);
+    if (!simInstance) {
+        simInstance = await loadModule('../build/sim.wasm');
+        simMemory = simInstance.exports.memory;
+    }
+    if (!statsInstance) {
+        statsInstance = await loadModule('../build/stats.wasm');
+        statsMemory = statsInstance.exports.memory;
     }
 }
 
-/**
- * Marshal strategy inputs to WASM input buffer
- */
 function marshalInputs(inputs) {
-    const inputPtr = wasmInstance.exports.getInputPtr();
-    const inputView = new Float64Array(wasmMemory.buffer, inputPtr, 20);
-    
-    inputView[0] = inputs.initialDebt;
-    inputView[1] = inputs.initialBalance;
-    inputView[2] = inputs.monthlyPayment;
-    inputView[3] = inputs.monthlyBudget;
-    inputView[4] = inputs.monthlyRate;
-    inputView[5] = inputs.years;
-    inputView[6] = inputs.volatility;
-    inputView[7] = inputs.growth;
-    inputView[8] = inputs.inflation;
-    inputView[9] = inputs.marginCallLTV;
-    inputView[10] = inputs.simulationCount;
+    const view = new Float64Array(simMemory.buffer, simInstance.exports.getInputPtr(), 20);
+    view.fill(0);
+    view[0] = inputs.initialEquity;
+    view[1] = inputs.targetLTV;
+    view[3] = inputs.monthlyBudget;
+    view[4] = inputs.monthlyRate;
+    view[5] = inputs.years;
+    view[6] = inputs.volatility;
+    view[7] = inputs.growth;
+    view[8] = inputs.inflation;
+    view[9] = inputs.marginCallLTV;
+    view[10] = inputs.simulationCount;
+    view[11] = inputs.stateCount || 3;
 }
 
-/**
- * Unmarshal WASM output buffer to strategy results
- */
-function unmarshalResults(outputSize) {
-    const outputPtr = wasmInstance.exports.getOutputPtr();
-    const outputView = new Float64Array(wasmMemory.buffer, outputPtr, outputSize);
-    const rawBuffer = new Float64Array(outputSize);
-    
-    for (let i = 0; i < outputSize; i++) {
-        rawBuffer[i] = outputView[i];
+function copyOutput(instance, memory, size) {
+    return new Float64Array(new Float64Array(memory.buffer, instance.exports.getOutputPtr(), size));
+}
+
+function expectedPointCount(scenarios, months) {
+    return scenarios * (months + 1);
+}
+
+function validateRawResults(rawResults) {
+    const headerSize = 9;
+    const months = Math.floor(rawResults[1]);
+    const scenarios = Math.floor(rawResults[2]);
+    const stateCount = Math.floor(rawResults[8]);
+    const points = expectedPointCount(scenarios, months);
+
+    if (months < 0 || scenarios < 1 || stateCount < 1) {
+        throw new Error('Invalid raw tensor header');
     }
-    
-    return rawBuffer;
+
+    const expectedSize = headerSize + stateCount * points;
+    if (rawResults.length !== expectedSize) {
+        throw new Error(`Invalid raw tensor length: expected ${expectedSize}, received ${rawResults.length}`);
+    }
+
+    return { months, scenarios, stateCount, points };
 }
 
-// Handle messages from main thread
-self.onmessage = async function(e) {
-    const { id, inputs, strategyIndex } = e.data;
-    
+function runStats(rawResults, benchmarkMedian) {
+    const { months, scenarios, stateCount, points } = validateRawResults(rawResults);
+    if (stateCount !== 3) {
+        throw new Error(`Unsupported state count: ${stateCount}`);
+    }
+
+    const inputSize = 6 + (points * stateCount);
+    const view = new Float64Array(statsMemory.buffer, statsInstance.exports.getInputPtr(), inputSize);
+    view.fill(0);
+    view[0] = months;
+    view[1] = scenarios;
+    view[2] = rawResults[3];
+    view[3] = rawResults[4];
+    view[4] = rawResults[5];
+    view[5] = benchmarkMedian || 0;
+    view.set(rawResults.subarray(9, 9 + points), 6);
+    view.set(rawResults.subarray(9 + points, 9 + 2 * points), 6 + points);
+    view.set(rawResults.subarray(9 + 2 * points, 9 + 3 * points), 6 + 2 * points);
+    return copyOutput(statsInstance, statsMemory, statsInstance.exports.runStats());
+}
+
+self.onmessage = async function (event) {
+    const { id, inputs, strategyIndex } = event.data;
     try {
-        // Initialize Wasm if needed
-        if (!wasmInstance) {
-            console.log(`[Worker ${strategyIndex}] Initializing WASM...`);
-            await initWasm();
-            console.log(`[Worker ${strategyIndex}] WASM initialized`);
-        }
-        
-        // Validate inputs exist
-        if (!inputs) {
-            throw new Error('No inputs provided to worker');
-        }
-        
-        // Marshal inputs to WASM
-        console.log(`[Worker ${strategyIndex}] Marshaling inputs...`);
+        await initWasm();
         marshalInputs(inputs);
-        console.log(`[Worker ${strategyIndex}] Running simulation...`);
-        
-        // Run WASM simulation
-        const startTime = performance.now();
-        const outputSize = wasmInstance.exports.runSimulation();
-        const endTime = performance.now();
-        
-        console.log(`[Worker ${strategyIndex}] Simulation complete, unmarshaling results...`);
-        
-        // Unmarshal results from WASM
-        const rawResults = unmarshalResults(outputSize);
-        
-        // Validate
-        const status = rawResults[0];
-        if (status !== 0) {
-            throw new Error(`WASM simulation failed with status: ${status}`);
-        }
-        
-        console.log(`[Worker ${strategyIndex}] Success, returning results`);
-        
-        // Return to main thread
+        const rawSize = simInstance.exports.runSimulation(inputs.providerId || 0);
+        const rawResults = copyOutput(simInstance, simMemory, rawSize);
+        const tensor = validateRawResults(rawResults);
+        const statsResults = runStats(rawResults, inputs.benchmarkMedian);
         self.postMessage({
             id,
             success: true,
-            rawResults: rawResults,
-            computeTime: endTime - startTime,
-            strategyIndex: strategyIndex
+            strategyIndex,
+            months: tensor.months,
+            scenarios: tensor.scenarios,
+            statsResults
         });
-        
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`[Worker ${e.data.strategyIndex}] Error:`, error, errorMessage);
-        self.postMessage({
-            id: e.data.id,
-            success: false,
-            error: errorMessage || 'Unknown error',
-            strategyIndex: e.data.strategyIndex
-        });
+        self.postMessage({ id, success: false, strategyIndex, error: String(error) });
     }
 };

@@ -7,12 +7,18 @@
 const STANDARD_MODE_DEFAULTS = {
     MODEL_ID: 1,               // 0 = GBM, 1 = Merton jump-diffusion
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
-    INTEREST_RATE: 7.0,       // Prime + 1% spread (%)
+    PRIME_RATE: 6.0,          // Benchmark prime rate (%)
+    SPREAD_RATE: 1.0,         // Lender spread above prime (%)
+    INTEREST_RATE: 7.0,       // Effective borrowing rate = prime + spread (%)
     GROWTH_RATE: 10,         // Historical S&P 500 return (%)
     VOLATILITY: 16.5,         // Standard deviation of annual returns (%)
     MARGIN_CALL_LTV: 60.0,    // Conservative liquidation threshold (%)
     MAX_LTV: 50             // Maximum LTV allowed in Standard Mode (%)
 };
+
+function getEffectiveBorrowingRate(primeRate = STANDARD_MODE_DEFAULTS.PRIME_RATE, spreadRate = STANDARD_MODE_DEFAULTS.SPREAD_RATE) {
+    return primeRate + spreadRate;
+}
 
 // Default Input Values
 const DEFAULT_INPUTS = {
@@ -92,6 +98,28 @@ if (typeof window !== 'undefined') {
 }
 
 // Export for use in other modules
+if (typeof window !== 'undefined') {
+    window.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
+    window.DEFAULT_INPUTS = DEFAULT_INPUTS;
+    window.UI_CONSTANTS = UI_CONSTANTS;
+    window.config = {
+        STANDARD_MODE_DEFAULTS,
+        DEFAULT_INPUTS,
+        UI_CONSTANTS
+    };
+}
+
+if (typeof globalThis !== 'undefined') {
+    globalThis.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
+    globalThis.DEFAULT_INPUTS = DEFAULT_INPUTS;
+    globalThis.UI_CONSTANTS = UI_CONSTANTS;
+    globalThis.config = globalThis.config || {
+        STANDARD_MODE_DEFAULTS,
+        DEFAULT_INPUTS,
+        UI_CONSTANTS
+    };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
         STANDARD_MODE_DEFAULTS, 

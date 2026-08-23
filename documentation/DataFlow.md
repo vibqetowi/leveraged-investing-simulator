@@ -1,241 +1,244 @@
-# Simulator Data Flow and Module Contracts
-
-## Purpose
-
-This document defines the simulator's module boundaries and data contracts.
-
-The system has four responsibilities:
-
-1. `sim` executes repeated transitions.
-2. `math` defines stochastic models and state transitions.
-3. `stats` interprets the resulting paths.
-4. JavaScript coordinates the modules and renders the returned view model.
-
-The simulator is deliberately dumb. It must not know whether it is running a
-leveraged-investing strategy, GBM, Merton jump-diffusion, MS-GARCH, or any future
-model.
+# Simulator Architecture & Module Contracts
 
 ## Data Flow
 
 ```text
 index.html
-  -> calculatorHandler.js
+  -> calculatorHandler.js (reads UI, builds config, requests sims)
   -> simulationOrchestrator.js
-  -> simulationWorker.js
-      -> selected math provider in sim.wasm
-       -> sim.wasm execution engine
-       -> stats.wasm aggregation
-  <- stats result for one strategy
-  <- simulationOrchestrator.js
-  <- calculatorHandler.js
-  <- charts and summaries
+      1. Pre-compute deposit and LTV schedules (see Schedule Optimization)
+      2. Build function table from math provider exports
+      3. Spawn one worker per strategy
+      -> simulationWorker.js (one per strategy)
+          1. Load sim.wasm with injected function table
+          2. Run 10,000 independent scenarios through sim
+          3. Pass raw paths to stats.wasm
+          4. Return stats result to orchestrator
+       copywritingHelper.js (formats for display only)
+  <- charts and summaries on index.html
 ```
 
-Each worker owns one strategy run. A strategy run contains many independent
-scenarios, such as 10,000 scenarios. Each scenario contains a complete path
-from month zero through the final month.
+Each worker owns one strategy run. A strategy run contains many independent scenarios (e.g., 10,000). Each scenario contains a complete path from month zero through the final month.
+
+## Function Table Pattern
+
+```text
+orchestrator.js                     sim.wasm                        math exports
+    |                                  |                                |
+    ├─ load math provider               |                                |
+    ├─ read config                      |                                |
+    ├─ map config -> function ref       |                                |
+    ├─ create WebAssembly.Table         |                                |
+    │   table.set(0, math.transition_gbm_lifecycle)                       |
+    ├─ build deposit schedule           |                                |
+    ├─ build LTV schedule               |                                |
+    ├─ spin up worker with table +      |                                |
+    │   schedules + config              |                                |
+    │                                  │                                |
+    │   worker instantiates sim ───────▶ import table                    |
+    │                                  call_indirect(0, state, config,   |
+    │                                     deposits, ltv_schedule) ──────├──▶ transition_gbm_lifecycle
+    │                                  ◀──────── return void (state      |
+    │                                     mutated in place)              │
+```
+
+New strategies ship as new exports in the math provider. `sim.wasm` never changes.
+
+## State Vector
+
+The sim holds this struct in WASM memory. Math functions read and mutate it in place.
+
+| Field | Type | Purpose | Model Usage |
+|-------|------|---------|-------------|
+| `drift` | f64 | Expected return μ | Initial condition. MS-GARCH overwrites when regime switches. |
+| `vol` | f64 | Conditional variance σ² | Initial condition. GARCH/MS-GARCH overwrites every month. |
+| `prev_return` | f64 | Lagged innovation ε_{t-1} | GARCH recursion. |
+| `regime` | u32 | Latent regime index s_t | MS-GARCH transitions it. Single-regime models ignore. |
+| `securities` | f64[] | Portfolio value path | All models write output here. |
+| `debt` | f64[] | Loan balance path | All models write output here. |
+| `target_ltv` | f64 | Target LTV ratio | Constant strategy ignores. Lifecycle updates it monthly. |
+| `prime_rate` | f64 | Current prime rate | Interest = prime + spread. Stochastic in future. |
+| `inflation` | f64 | Current inflation rate | Inflation-adjusted deposits read this. |
+
+The sim's position in the deposit and LTV schedule arrays is the month index. No separate month counter is needed.
+
+## Schedule Optimization
+
+The orchestrator pre-computes deterministic, path-independent schedules once before spawning any workers:
+
+```javascript
+// orchestrator.js
+const deposits = new Float64Array(nMonths);
+for (let t = 0; t < nMonths; t++) {
+  deposits[t] = budget * Math.pow(1 + inflation, t / 12);
+}
+
+const ltvSchedule = new Float64Array(nMonths);
+for (let t = 0; t < nMonths; t++) {
+  ltvSchedule[t] = targetLTV; // or lifecycle decay
+}
+```
+
+## Monthly Step Order
+
+Each month in the sim loop, the math function executes:
+
+1. **Stochastic Transition:** Draw returns using current `drift`, `vol`, `regime`. Apply to `securities`.
+2. **Apply Interest:** `debt *= (1 + (prime_rate + spread) / 12)`
+3. **Margin Check:** If `securities / debt` ratio breaches margin threshold, force liquidation or trigger margin call.
+4. **Deposit:** Read `deposits[month]`, subtract from `debt`.
+5. **Buy / Restore LTV:** Read `ltv_schedule[month]`, rebalance `securities` and `debt` to hit target LTV.
+
+The sim calls `call_indirect(func_table_idx, state_ptr, config_ptr, deposits_ptr, ltv_schedule_ptr, month)` each step. The math function handles all five steps internally. The sim records `securities` and `debt` after each step into the output arrays.
+
+## Strategy Mapping
+
+| Oscillator | Deposit | Target LTV | Function Name | State Var Changes |
+|------------|---------|------------|---------------|-------------------|
+| GBM | Constant | Constant | `transition_gbm_const` | drift/vol unchanged |
+| GBM | Inflation | Constant | `transition_gbm_inflation` | drift/vol unchanged |
+| Merton | Constant | Constant | `transition_merton_const` | drift/vol unchanged |
+| GARCH | Constant | Constant | `transition_garch_const` | vol updated, prev_return updated |
+| MS-GARCH | Constant | Lifecycle | `transition_msgarch_lifecycle` | drift/vol/regime updated |
+| MS-GARCH | Inflation | Lifecycle | `transition_msgarch_lifecycle_inf` | drift/vol/regime updated |
 
 ## Module Contracts
 
-### `sim.wasm`: Generic Execution Engine
+### sim.wasm
 
-`sim.wasm` is a domain-agnostic execution engine.
+**Responsibilities:**
 
-It is responsible only for:
+- Receive initial state, function table, config, and read-only schedules.
+- Iterate through configured scenarios and months.
+- Invoke the supplied transition function for each step via `call_indirect`.
+- Record the state returned by that behavior.
+- Return raw state paths.
 
-- receiving initial state and a configured model/transition interface;
-- iterating through the configured scenarios and months;
-- invoking the supplied behavior for each transition;
-- recording the state returned by that behavior;
-- returning raw state paths.
+**Output Shape:** `scenarioCount * (monthCount + 1)` values per state variable.
 
-`sim` must not:
+### math
 
-- choose or understand a financial strategy;
-- know what securities, debt, drift, volatility, deposits, or LTV mean;
-- implement interest, liquidation, purchases, or target-LTV rules;
-- choose GBM, Merton, GARCH, or another stochastic model;
-- calculate inflation or decide whether values are nominal or real;
-- average, sort, calculate percentiles, classify outcomes, or create charts.
+**Responsibilities:**
 
-The runner records state generically:
+- Stochastic innovations and returns.
+- Account or domain-state transitions.
+- Model-specific state evolution (drift, vol, regime, prev_return).
+- All five monthly steps (stochastic, interest, margin, deposit, buy).
 
-```text
-state[variable][scenario][month]
+**Configuration:**
 
-scenario = 0 .. scenarioCount - 1
-month    = 0 .. monthCount
+- Drift and volatility (initial conditions).
+- GARCH parameters (ω, α, β).
+- MS-GARCH regime transition matrix and per-regime parameters.
+- Merton jump intensity and jump distribution.
+- Spread (fixed; prime_rate is state).
+- Inflation rate.
+- Margin call LTV threshold.
+- Random seed and random-state configuration.
+
+### stats.wasm
+
+**Responsibilities:**
+
+- Nominal-to-real conversion.
+- Final real wealth for every scenario.
+- Mean, median, p90, and standard deviation.
+- Survival and ruin measures.
+- Real-wealth histogram bins.
+- Monthly DCA net worth.
+- Monthly average leveraged net worth.
+- Monthly average securities and debt.
+- Benchmark comparisons.
+- Mutually exclusive Ruin, Sucker, and Profit categories.
+- Strategy summaries and chart-ready arrays.
+
+**Outcome Categories:** Defined from final real wealth and the configured benchmark. Counts must be mutually exclusive and sum to the scenario count. Survival is final real wealth greater than total real deposits. Equality is not survival.
+
+### simulationWorker.js
+
+**Responsibilities:**
+
+1. Load sim.wasm with injected function table.
+2. Supply strategy configuration and schedules to sim.
+3. Run the complete simulation (all scenarios, all months).
+4. Receive the complete raw scenario tensor.
+5. Pass the tensor to stats.wasm.
+6. Return the stats result and strategy dimensions to the orchestrator.
+
+Raw tensors remain inside the worker. The orchestrator never sees raw paths.
+
+### simulationOrchestrator.js
+
+**Responsibilities:**
+
+- Receive validated simulation configuration from calculatorHandler.
+- Pre-compute deposit and LTV schedules (see Schedule Optimization).
+- Build the function table from math provider exports.
+- Create strategy jobs (one per strategy).
+- Spawn workers with prepared tables, schedules, and config.
+- Handle worker completion, errors, and timeouts.
+- Collect stats results from all workers.
+- Return the collection of strategy results.
+
+### calculatorHandler.js
+
+**Responsibilities:**
+
+- Read and validate UI inputs.
+- Construct simulation configuration.
+- Request simulations through the orchestrator.
+- Select a returned strategy result.
+- Pass returned stats to the renderer.
+- Use copywritingHelper.js for presentation text.
+
+Charts consume arrays returned by stats.wasm directly.
+
+### copywritingHelper.js
+
+**Responsibilities:**
+
+- Format configuration and statistics already produced by the pipeline.
+- Choose wording and formatting.
+
+### index.html
+
+Defines structure, labels, controls, and chart containers.
+
+## Memory Layout
+
+```c
+struct SimState {
+  f64 drift;           // 0
+  f64 vol;             // 8
+  f64 prev_return;     // 16
+  f64 target_ltv;      // 24
+  f64 prime_rate;      // 32
+  f64 inflation;       // 40
+  u32 regime;          // 48
+};
+
+struct Config {
+  f64 omega, alpha, beta;         // GARCH params
+  f64 kappa, theta, sigma_v, rho;  // Heston params (future)
+  f64 jump_lambda, jump_mu, jump_sigma; // Merton params
+  f64 spread;                      // prime + spread; spread is config, prime is state
+  u32 model_id;                    // enum: GBM=0, Merton=1, GARCH=2, MSGARCH=3
+};
 ```
 
-Every returned state variable must contain exactly:
+Arrays (`securities[]`, `debt[]`, `deposits[]`, `ltv_schedule[]`) are passed as pointers + lengths. No embedded arrays in structs.
 
-```text
-scenarioCount * (monthCount + 1)
-```
+## Future Extensibility
 
-values. `sim` must return every requested scenario and every month. A single
-representative scenario is not a valid result.
-
-The current raw buffer is a `Float64Array` with this layout:
-
-```text
-[status, months, scenarioCount, initialEquity, monthlyBudget,
- inflation, targetLTV, marginCallLTV, stateCount,
- state[0][scenario][month], state[1][scenario][month], ...]
-```
-
-State planes are contiguous and use scenario-major indexing:
-`scenario * (monthCount + 1) + month`. The current state variables are
-securities, debt, and a liquidation marker. Raw securities, debt, and wealth
-are nominal; `stats` returns real-dollar chart and outcome values.
-
-### `math`: Model and Transition Provider
-
-`math` supplies the behavior executed by `sim`. The provider implementation is
-compiled into the runnable `sim.wasm` artifact; the worker selects it by
-provider ID and supplies its configuration. A separate `math.wasm` file is not
-loaded at runtime.
-
-It owns:
-
-- scenario initialization;
-- stochastic innovations and returns;
-- account or domain-state transitions;
-- model-specific state;
-- serialization of state variables for the runner.
-
-All behavior is configuration-driven. Configuration may include:
-
-- drift and volatility;
-- interest, inflation, and deposits;
-- target LTV and margin threshold;
-- jump intensity and jump distribution;
-- GBM, Merton, MS-GARCH, or another model;
-- strategy and liquidation rules;
-- random seed and random-state configuration.
-
-Model state may change during execution. For example, an MS-GARCH model may
-read the current drift and volatility, update its regime and conditional
-variance from the latest innovation, and provide new drift and volatility for
-the next month. `sim` does not know that these variables exist. It only invokes
-the supplied transition behavior and records the returned state.
-
-Changing from GBM to Merton or MS-GARCH must change the selected model or its
-configuration. It must not require changing the `sim` runner.
-
-### `stats.wasm`: Path Interpretation
-
-`stats.wasm` consumes the complete raw paths returned by `sim.wasm`, together
-with configuration and benchmark data. It is the only module responsible for
-interpretation and aggregation.
-
-It computes the values required by the UI, including:
-
-- nominal-to-real conversion, when raw paths are nominal;
-- final real wealth for every scenario;
-- mean, median, p90, and standard deviation;
-- survival and ruin measures;
-- real-wealth histogram bins;
-- monthly DCA net worth;
-- monthly average leveraged net worth;
-- monthly average securities and debt;
-- benchmark comparisons;
-- mutually exclusive Ruin, Sucker, and Profit categories;
-- strategy summaries and chart-ready arrays.
-
-The stats input buffer is:
-
-```text
-[months, scenarioCount, initialEquity, monthlyBudget, inflation,
- benchmarkMedian, state[0][scenario][month], state[1][scenario][month],
- state[2][scenario][month]]
-```
-
-The output begins with status, months, total real deposits, survival rate,
-median, p90, expected wealth, survivor count, margin-call count, and the
-Ruin/Sucker/Profit counts. It then contains monthly securities/debt/net-worth
-triples and final real wealth for every scenario. The browser receives this
-stats result, not the raw tensor.
-
-`stats` must consume all scenarios and all months. It must not infer missing
-paths from scenario zero.
-
-Survival is defined strictly as final real wealth greater than total real
-deposits. Equality is not survival. The outcome categories are defined from
-final real wealth and the configured benchmark. Their counts must be mutually
-exclusive and sum to the scenario count.
-
-### `simulationWorker.js`: Per-Strategy Composition
-
-The worker composes the WASM modules for one strategy run.
-
-It is responsible for:
-
-1. loading `sim.wasm`, which contains the available math providers;
-2. selecting the requested math provider and supplying its strategy
-  configuration to `sim`;
-4. receiving the complete raw scenario tensor;
-5. passing the tensor to `stats.wasm`;
-6. returning the stats result and strategy dimensions. Raw tensors remain
-  inside the worker.
-
-The worker does not calculate statistics, classify outcomes, or make strategy
-decisions. It transfers data between modules.
-
-### `simulationOrchestrator.js`: Coordination
-
-The orchestrator creates and tracks workers, one per strategy. It is responsible
-for:
-
-- receiving validated simulation configuration;
-- creating strategy jobs;
-- starting workers and handling completion, errors, and timeouts;
-- associating results with strategy identifiers;
-- returning the collection of worker results.
-
-It must not read DOM elements, implement financial formulas, aggregate paths,
-calculate statistics, compare benchmarks, or classify outcomes.
-
-### `calculatorHandler.js`: Input and Rendering Boundary
-
-The calculator handler is responsible for:
-
-- reading and validating UI inputs;
-- constructing simulation configuration;
-- requesting simulations through the orchestrator;
-- selecting a returned strategy result;
-- passing returned stats to the renderer.
-
-It must not calculate averages, percentiles, histogram bins, classifications, or
-monthly chart series. Charts consume arrays returned by `stats.wasm` directly.
-
-The required visual outputs are:
-
-1. a histogram of final real wealth;
-2. a transparent overlaid area chart of monthly DCA net worth and average
-   leveraged net worth;
-3. a chart of monthly securities and debt;
-4. a strategy summary using returned Ruin, Sucker, and Profit statistics.
-
-### `index.html`: Markup Only
-
-`index.html` defines structure, labels, controls, and chart containers. It must
-not contain simulation, financial, stochastic, statistical, or classification
-logic.
-
-### `copywritingHelper.js`: Presentation Only
-
-`copywritingHelper.js` formats configuration and statistics already produced by
-the pipeline. It may choose wording and formatting, but it must not calculate or
-infer financial outcomes, classifications, probabilities, or chart data.
+| Feature | State Var | Config Item | Notes |
+|---------|-----------|-------------|-------|
+| Stochastic Prime | `prime_rate` (f64) | spread (f64) | Prime evolves via Vasicek/Hull-White. Spread fixed. |
+| Variable Inflation | `inflation` (f64) | : | Inflation autoregression. Current: constant. |
+| Slippage | `liquidity` (f64) | λ (f64) | Kyle's model. Not needed for retail investors. |
+| Regime Transition Matrix | none (stored in config) | P[K][K] | 2x2 for now, expandable. |
 
 ## Required Invariants
 
-- The same `sim` runner can execute any supplied model and strategy behavior.
-- Evolving model state, including drift and volatility, belongs to `math`.
 - Every scenario and every month appears in the raw output.
-- All interpretation belongs to `stats`.
-- JavaScript coordinates and renders; it performs no statistical work.
 - No module silently changes the meaning or units of an array.
-- Serialization layouts, dimensions, and units are documented and shared by all
-  modules.
+- Serialization layouts, dimensions, and units are documented and shared by all modules.

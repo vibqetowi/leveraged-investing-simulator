@@ -1,32 +1,31 @@
 // Global state
 let currentMode = 'standard';
-let riskTarget = UI_CONSTANTS.DEFAULT_RISK_PROFILES.median; // Default to median
 let simulationResults = null; // Store last simulation results for slider interaction
 let amortizationStrategyIndex = null; // Index of strategy closest to amortization payment
+const DEFAULT_STRATEGY_INDEX = 0;
 
-/**
- * Risk Profile Management
- */
-function setRiskProfile(profile) {
-    if (profile === 'aggressive') {
-        riskTarget = UI_CONSTANTS.DEFAULT_RISK_PROFILES.aggressive;
-    } else if (profile === 'median') {
-        riskTarget = UI_CONSTANTS.DEFAULT_RISK_PROFILES.median;
-    } else if (profile === 'conservative') {
-        riskTarget = UI_CONSTANTS.DEFAULT_RISK_PROFILES.conservative;
+function getStandardDefaults() {
+    if (typeof window !== 'undefined' && window.STANDARD_MODE_DEFAULTS) {
+        return window.STANDARD_MODE_DEFAULTS;
     }
-    
-    document.getElementById('riskAggressive').classList.remove('risk-btn-active');
-    document.getElementById('riskMedian').classList.remove('risk-btn-active');
-    document.getElementById('riskConservative').classList.remove('risk-btn-active');
-    
-    if (profile === 'aggressive') {
-        document.getElementById('riskAggressive').classList.add('risk-btn-active');
-    } else if (profile === 'median') {
-        document.getElementById('riskMedian').classList.add('risk-btn-active');
-    } else if (profile === 'conservative') {
-        document.getElementById('riskConservative').classList.add('risk-btn-active');
+    if (typeof config !== 'undefined' && config.STANDARD_MODE_DEFAULTS) {
+        return config.STANDARD_MODE_DEFAULTS;
     }
+    return STANDARD_MODE_DEFAULTS;
+}
+
+function getPrimeRateValue() {
+    const element = document.getElementById('primeRate');
+    return parseFloat(element?.value ?? getStandardDefaults().PRIME_RATE);
+}
+
+function getSpreadRateValue() {
+    const element = document.getElementById('spreadRate');
+    return parseFloat(element?.value ?? getStandardDefaults().SPREAD_RATE);
+}
+
+function getEffectiveInterestRateValue() {
+    return getPrimeRateValue() + getSpreadRateValue();
 }
 
 /**
@@ -47,13 +46,18 @@ function setMode(mode) {
         const element = document.getElementById(id);
         if (element) element.disabled = isStandard;
     });
-    
-    // Interest rate is always visible, just readonly in Standard Mode
-    const interestRateInput = document.getElementById('interestRate');
-    if (interestRateInput) {
-        interestRateInput.readOnly = isStandard;
-        interestRateInput.style.backgroundColor = isStandard ? '#f5f5f5' : '';
-        interestRateInput.style.cursor = isStandard ? 'not-allowed' : '';
+
+    const primeRateInput = document.getElementById('primeRate');
+    const spreadRateInput = document.getElementById('spreadRate');
+    if (primeRateInput) {
+        primeRateInput.readOnly = isStandard;
+        primeRateInput.style.backgroundColor = isStandard ? '#f5f5f5' : '';
+        primeRateInput.style.cursor = isStandard ? 'not-allowed' : '';
+    }
+    if (spreadRateInput) {
+        spreadRateInput.readOnly = isStandard;
+        spreadRateInput.style.backgroundColor = isStandard ? '#f5f5f5' : '';
+        spreadRateInput.style.cursor = isStandard ? 'not-allowed' : '';
     }
 
     // Inflation rate is always visible, just readonly in Standard Mode
@@ -64,35 +68,42 @@ function setMode(mode) {
         inflationRateInput.style.cursor = isStandard ? 'not-allowed' : '';
     }
     
-    // Show LTV slider and loan amount in both modes
-    document.getElementById('ltvSliderGroup').style.display = 'flex';
-    document.getElementById('loanAmountGroup').style.display = 'flex';
+    // Show LTV slider in both modes; the loan derivation stays hidden to the user
+    const ltvSliderGroup = document.getElementById('ltvSliderGroup');
+    if (ltvSliderGroup) ltvSliderGroup.style.display = 'flex';
+    const loanAmountGroup = document.getElementById('loanAmountGroup');
+    if (loanAmountGroup) loanAmountGroup.style.display = 'flex';
     
-    // Configure LTV slider and loan amount based on mode
+    // Configure LTV slider and hidden loan amount based on mode
     const ltvSlider = document.getElementById('ltvSlider');
     const loanAmountInput = document.getElementById('loanAmount');
     
+    const standardDefaults = getStandardDefaults();
+
     if (isStandard) {
-        // Standard Mode: slider max 35%, loan amount readonly, slider enabled to move
-        ltvSlider.max = 35;
-        ltvSlider.disabled = false;
-        loanAmountInput.readOnly = true;
-        loanAmountInput.style.backgroundColor = '#f5f5f5';
-        loanAmountInput.style.cursor = 'not-allowed';
+        // Standard Mode: slider max 50%
+        if (ltvSlider) ltvSlider.max = standardDefaults.MAX_LTV;
+        if (ltvSlider) ltvSlider.disabled = false;
+        if (loanAmountInput) {
+            loanAmountInput.readOnly = true;
+            loanAmountInput.style.backgroundColor = '#f5f5f5';
+            loanAmountInput.style.cursor = 'not-allowed';
+        }
         
         // Lock standard mode parameters
-        document.getElementById('interestRate').value = STANDARD_MODE_DEFAULTS.INTEREST_RATE;
-        document.getElementById('growth').value = STANDARD_MODE_DEFAULTS.GROWTH_RATE;
-        document.getElementById('vol').value = STANDARD_MODE_DEFAULTS.VOLATILITY;
-        document.getElementById('marginCall').value = STANDARD_MODE_DEFAULTS.MARGIN_CALL_LTV;
-        document.getElementById('inflationRate').value = STANDARD_MODE_DEFAULTS.INFLATION_RATE;
+        document.getElementById('primeRate').value = standardDefaults.PRIME_RATE;
+        document.getElementById('spreadRate').value = standardDefaults.SPREAD_RATE;
+        document.getElementById('growth').value = standardDefaults.GROWTH_RATE;
+        document.getElementById('vol').value = standardDefaults.VOLATILITY;
+        document.getElementById('marginCall').value = standardDefaults.MARGIN_CALL_LTV;
+        document.getElementById('inflationRate').value = standardDefaults.INFLATION_RATE;
         
         // Set payment type to standard
         
         // Cap LTV at 35% if it was higher in custom mode
         let currentLtv = parseFloat(ltvSlider.value);
-        if (currentLtv > STANDARD_MODE_DEFAULTS.MAX_LTV) {
-            currentLtv = STANDARD_MODE_DEFAULTS.MAX_LTV;
+        if (currentLtv > standardDefaults.MAX_LTV) {
+            currentLtv = standardDefaults.MAX_LTV;
             ltvSlider.value = currentLtv;
             document.getElementById('ltvDisplay').innerText = currentLtv;
         }
@@ -109,12 +120,14 @@ function setMode(mode) {
         // Clear LTV warning in standard mode
         document.getElementById('ltvWarning').style.display = 'none';
     } else {
-        // Custom Mode: slider max 100%, loan amount editable
-        ltvSlider.max = 100;
-        ltvSlider.disabled = false;
-        loanAmountInput.readOnly = false;
-        loanAmountInput.style.backgroundColor = '';
-        loanAmountInput.style.cursor = '';
+        // Custom Mode: slider max 100%, hidden loan amount remains internal
+        if (ltvSlider) ltvSlider.max = 100;
+        if (ltvSlider) ltvSlider.disabled = false;
+        if (loanAmountInput) {
+            loanAmountInput.readOnly = false;
+            loanAmountInput.style.backgroundColor = '';
+            loanAmountInput.style.cursor = '';
+        }
         
         // Update budget warning for custom mode
         updateBudgetWarningCustom();
@@ -250,7 +263,7 @@ function updateStandardModeFromBudget() {
     
     const monthlyBudget = parseFloat(document.getElementById('monthlyBudget').value);
     const loan = parseFloat(document.getElementById('loanAmount').value);
-    const annualRate = STANDARD_MODE_DEFAULTS.INTEREST_RATE / 100;
+    const annualRate = getEffectiveInterestRateValue() / 100;
     const years = parseFloat(document.getElementById('loanPeriod').value);
     const months = years * 12;
     const mRate = annualRate / 12;
@@ -281,7 +294,7 @@ function updateBudgetWarningCustom() {
     
     const monthlyBudget = parseFloat(document.getElementById('monthlyBudget').value);
     const loan = parseFloat(document.getElementById('loanAmount').value);
-    const annualRate = parseFloat(document.getElementById('interestRate').value) / 100;
+    const annualRate = getEffectiveInterestRateValue() / 100;
     const years = parseFloat(document.getElementById('loanPeriod').value);
     const months = years * 12;
     const mRate = annualRate / 12;
@@ -304,7 +317,7 @@ function updateBudgetWarningCustom() {
 /**
  * Handle interest rate changes and recalculate payments
  */
-function handleInterestRateChange() {
+function handleBorrowingRateChange() {
     // Recalculate minimum payment based on payment type
     syncMinPayment();
     
@@ -379,7 +392,9 @@ function getSimulationInputs() {
     const loanAmount = parseFloat(document.getElementById('loanAmount').value);
     const years = parseFloat(document.getElementById('loanPeriod').value);
     const monthlyBudget = parseFloat(document.getElementById('monthlyBudget').value);
-    const interestRate = parseFloat(document.getElementById('interestRate').value) / 100;
+    const primeRate = parseFloat(document.getElementById('primeRate')?.value ?? STANDARD_MODE_DEFAULTS.PRIME_RATE) / 100;
+    const spreadRate = parseFloat(document.getElementById('spreadRate')?.value ?? STANDARD_MODE_DEFAULTS.SPREAD_RATE) / 100;
+    const interestRate = primeRate + spreadRate;
     const growth = parseFloat(document.getElementById('growth').value) / 100;
     const volatility = parseFloat(document.getElementById('vol').value) / 100;
     const inflation = parseFloat(document.getElementById('inflationRate').value) / 100;
@@ -420,18 +435,19 @@ function getSimulationInputs() {
  * Only considers leveraged strategies (indices 0-9).
  */
 function findTargetStrategyIndex(targetSurvival) {
-    if (!simulationResults) return 0;
+    if (!simulationResults) return DEFAULT_STRATEGY_INDEX;
     
+    if (targetSurvival <= 0) {
+        return DEFAULT_STRATEGY_INDEX;
+    }
+
     const strategies = simulationResults.strategies;
-    // Only consider leveraged strategies (0-9), not the baseline strategy (10)
     const leveragedStrategies = strategies.slice(0, 10);
-    
     const safeStrategies = leveragedStrategies
         .map((strategy, index) => ({ strategy, index }))
         .filter(({ strategy }) => strategy.survivalRate >= targetSurvival);
 
     if (safeStrategies.length === 0) {
-        // Return the most conservative leveraged strategy (index 9)
         return 9;
     }
 
@@ -1092,42 +1108,22 @@ function displayResults(results) {
     const totalInterest = Math.max(0, totalPayments - loanDetails.loanAmount);
     const presentValue = loanDetails.initialEquity;
     
-    // Find strategies with target survival rate
-    const safeStrategies = data.filter(d => d.survivalRate >= riskTarget);
     const summary = document.getElementById('summary');
-    const targetIndex = findTargetStrategyIndex(riskTarget);
+    const targetIndex = DEFAULT_STRATEGY_INDEX;
     const targetStrategy = data[targetIndex];
 
-    if (safeStrategies.length > 0) {
-        summary.innerHTML = `
-            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #E0E0E0;">
-                <strong>Analysis Parameters</strong><br>
-                <span style="font-size: 0.95rem; color: #757575;">Monthly Budget (Baseline): <strong>$${loanDetails.monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
-                <span style="font-size: 0.95rem; color: #757575;">Loan Amount: <strong>$${presentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
-                <span style="font-size: 0.95rem; color: #757575;">Inflation Rate: <strong>${(loanDetails.inflationRate * 100).toFixed(1)}%</strong> (All wealth values in today's dollars)</span><br><br>
-                <span style="font-size: 0.85rem; color: #999;"><em>Reference: Full Amortization Payment = $${amortizedPayment.toLocaleString(undefined, {maximumFractionDigits: 0})}/month (would pay off loan completely over ${loanDetails.years} years with $${totalInterest.toLocaleString(undefined, {maximumFractionDigits: 0})} total interest)</em></span>
-            </div>
-            <strong>Default Strategy Selection (Risk-Based):</strong><br><br>
-            Your risk profile targets <strong>${riskTarget}% survival</strong>. The slider starts at the closest strategy that meets or exceeds this target.<br><br>
-            Selected Strategy: <strong>$${(targetStrategy.targetLTV * 100).toFixed(1) + "% LTV"}</strong> per month
-            with <strong>${targetStrategy.survivalRate.toFixed(1)}%</strong> survival.<br><br>
-            <em style="font-size: 0.9rem;">Use the slider below to explore different payment strategies from minimum required to your full monthly budget.</em>
-        `;
-    } else {
-        summary.innerHTML = `
-            <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #E0E0E0;">
-                <strong>Analysis Parameters</strong><br>
-                <span style="font-size: 0.95rem; color: #757575;">Monthly Budget (Baseline): <strong>$${loanDetails.monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
-                <span style="font-size: 0.95rem; color: #757575;">Loan Amount: <strong>$${presentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
-                <span style="font-size: 0.95rem; color: #757575;">Inflation Rate: <strong>${(loanDetails.inflationRate * 100).toFixed(1)}%</strong> (All wealth values in today's dollars)</span><br><br>
-                <span style="font-size: 0.85rem; color: #999;"><em>Reference: Full Amortization Payment = $${amortizedPayment.toLocaleString(undefined, {maximumFractionDigits: 0})}/month (would pay off loan completely over ${loanDetails.years} years with $${totalInterest.toLocaleString(undefined, {maximumFractionDigits: 0})} total interest)</em></span>
-            </div>
-            <strong>⚠️ High Risk:</strong> No strategies meet the ${riskTarget}% survival target. The slider starts at the maximum payment strategy to maximize safety.
-        `;
-    }
+    summary.innerHTML = `
+        <div style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #E0E0E0;">
+            <strong>Analysis Parameters</strong><br>
+            <span style="font-size: 0.95rem; color: #757575;">Monthly Budget (Baseline): <strong>$${loanDetails.monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
+            <span style="font-size: 0.95rem; color: #757575;">Loan Amount: <strong>$${presentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
+            <span style="font-size: 0.95rem; color: #757575;">Inflation Rate: <strong>${(loanDetails.inflationRate * 100).toFixed(1)}%</strong> (All wealth values in today's dollars)</span><br><br>
+            <span style="font-size: 0.85rem; color: #999;"><em>Reference: Full Amortization Payment = $${amortizedPayment.toLocaleString(undefined, {maximumFractionDigits: 0})}/month (would pay off loan completely over ${loanDetails.years} years with $${totalInterest.toLocaleString(undefined, {maximumFractionDigits: 0})} total interest)</em></span>
+        </div>
+        <strong>Starting Point:</strong> Base case at <strong>${(targetStrategy.targetLTV * 100).toFixed(1) + "% LTV"}</strong>.<br><br>
+        <em style="font-size: 0.9rem;">Use the slider below to explore the leverage spectrum from the baseline to higher target LTVs.</em>
+    `;
 
-
-    // Find target strategy index based on risk target
     const slider = document.getElementById('strategySlider');
     slider.value = targetIndex;
 
@@ -1216,7 +1212,7 @@ function updateSliderPills(activeIndex) {
  * Input Validation
  */
 function validateInputs() {
-    const inputs = ['loanPeriod', 'assetValue', 'monthlyBudget', 'interestRate', 'growth', 'vol', 'marginCall', 'inflationRate'];
+    const inputs = ['loanPeriod', 'assetValue', 'monthlyBudget', 'primeRate', 'spreadRate', 'growth', 'vol', 'marginCall', 'inflationRate'];
     
     for (const id of inputs) {
         const element = document.getElementById(id);
@@ -1246,6 +1242,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const copy = {
         'growth-tooltip': CopywritingHelpers.getGrowthRateText(),
         'volatility-tooltip': CopywritingHelpers.getVolatilityText(),
+        'prime-rate-tooltip': CopywritingHelpers.getPrimeRateText(),
+        'spread-rate-tooltip': CopywritingHelpers.getSpreadRateText(),
         'interest-rate-tooltip': CopywritingHelpers.getInterestRateText(),
         'margin-call-tooltip': CopywritingHelpers.getMarginCallText(),
         'inflation-tooltip': CopywritingHelpers.getInflationText(),
@@ -1264,21 +1262,51 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     Object.entries(copy).forEach(([id, text]) => setText(id, text));
 
+    const constantPreamble = document.getElementById('constantPreambleContent');
+    const lifecyclePreamble = document.getElementById('lifecyclePreambleContent');
+
+    if (constantPreamble) {
+        constantPreamble.innerHTML = CopywritingHelpers.getConstantPreambleHtml();
+    }
+    if (lifecyclePreamble) {
+        lifecyclePreamble.innerHTML = CopywritingHelpers.getLifecyclePreambleHtml();
+    }
+
+    const switchPreamble = (mode) => {
+        const panels = {
+            constant: document.getElementById('constantPreamble'),
+            lifecycle: document.getElementById('lifecyclePreamble')
+        };
+
+        Object.entries(panels).forEach(([key, panel]) => {
+            if (!panel) return;
+            const show = key === mode;
+            panel.hidden = !show;
+        });
+
+        document.querySelectorAll('.nav-tab').forEach(button => {
+            const isActive = button.dataset.preamble === mode;
+            button.classList.toggle('active', isActive);
+        });
+    };
+
+    document.querySelectorAll('.nav-tab').forEach(button => {
+        button.addEventListener('click', () => switchPreamble(button.dataset.preamble));
+    });
+
     document.getElementById('jumpToCalculator')?.addEventListener('click', () => {
-        document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
     document.getElementById('standardMode')?.addEventListener('click', () => setMode('standard'));
     document.getElementById('customMode')?.addEventListener('click', () => setMode('custom'));
-    document.getElementById('riskAggressive')?.addEventListener('click', () => setRiskProfile('aggressive'));
-    document.getElementById('riskMedian')?.addEventListener('click', () => setRiskProfile('median'));
-    document.getElementById('riskConservative')?.addEventListener('click', () => setRiskProfile('conservative'));
     document.getElementById('calculateBtn')?.addEventListener('click', handleCalculate);
     document.getElementById('loanPeriod')?.addEventListener('input', handleBudgetOrPeriodChange);
     document.getElementById('monthlyBudget')?.addEventListener('input', handleBudgetOrPeriodChange);
     document.getElementById('assetValue')?.addEventListener('input', updateLoanFromCollateral);
     document.getElementById('ltvSlider')?.addEventListener('input', updateLoanFromSlider);
     document.getElementById('loanAmount')?.addEventListener('input', updateLoanFromDirectInput);
-    document.getElementById('interestRate')?.addEventListener('input', handleInterestRateChange);
+    document.getElementById('primeRate')?.addEventListener('input', handleBorrowingRateChange);
+    document.getElementById('spreadRate')?.addEventListener('input', handleBorrowingRateChange);
 
     // Initialize input values from config
     document.getElementById('loanPeriod').value = DEFAULT_INPUTS.LOAN_PERIOD;

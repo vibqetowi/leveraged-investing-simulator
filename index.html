@@ -12,159 +12,83 @@
 </head>
 <body>
 
-<div class="container">
-    <div class="intro">
-        <h1>Leveraged Investing Simulator</h1>
+<nav class="top-nav" aria-label="Model navigation">
+    <button class="nav-tab active" type="button" data-preamble="constant">Constant Leverage DCA</button>
+    <button class="nav-tab" type="button" data-preamble="lifecycle">Lifecycle Investing</button>
+</nav>
 
-        <div class="alert-warning">
-            <strong>Not Financial Advice:</strong> Educational simulation only. Use of this tool does not constitute financial, investment, legal, or tax advice.
-        </div>
+<div class="container">     
+    
+    <h1>Leveraged Investing Simulator</h1>
 
-             <p style="text-align: center; margin: 24px 0;">
-            <button id="jumpToCalculator" class="calc-btn calc-btn-secondary" style="width: auto; display: inline-block; margin: 0;">Jump to Calculator ↓</button>
-        </p>
-        
-        <h3 class="section-title-center">What Would the Perfect Wealth Strategy Look Like?</h3>
-        <p>
-            An ideal long-term wealth accumulation strategy prioritizes four criteria:
-        </p>
-        <ul class="compact-list">
-            <li><strong>Simplicity:</strong> No market timing, no stock picking, no financial degree. A mechanical rule executable for 30 years without active management.</li>
-            <li><strong>Recoverable Risk:</strong> Downturns occur. The strategy must absorb market crashes and permit recovery.</li>
-            <li><strong>Excess Returns:</strong> Consistent outperformance of a benchmark strategy over long periods.</li>
-            <li><strong>Efficiency:</strong> Minimized taxes and fees.</li>
-        </ul>
-        <p>
-            Liquidity is not a primary concern for wealth accumulation. Savings accounts serve that purpose.
-        </p>
-        <div class="info-box">
-            Everything that follows depends on one assumption: <strong>broad market indexes trend upward over multi-decade periods.</strong> This is not a guarantee, but has held for nearly a century.
-        </div>
-
-        <h3 class="section-title-center">The Wealth Building Benchmark: Dollar Cost Averaging</h3>
-        <p>
-            <strong>Dollar Cost Averaging (DCA)</strong> involves investing a fixed amount from each paycheck into a security, most commonly a market index fund. It is straightforward and safe, but contains a structural inefficiency: <strong>most capital is deployed late in the accumulation period</strong>, when the portfolio is largest. Late crashes dominate outcomes because dollar-weighted exposure concentrates at the end of the timeline.
-        </p>
-
-        <p>
-            <strong> A margin account is a brokerage account that allows borrowing against securities holdings. Leverage (borrowing to invest) front-loads market exposure</strong>, giving capital more time to compound, thus shifting time risk and amplifying potential returns. Losses are also amplified. If debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less than they initially deposited.
-        </p>
-
-        <div class="info-box">
-            <h4 class="section-title-left" style="margin: 0;">Loan-to-Value (LTV) and Leverage Ratio</h4>
-            <p>
-                <strong>Loan-to-Value (LTV)</strong> is debt as a percentage of total portfolio value. $40K equity, $60K borrowed, $100K portfolio: 60% LTV.
-            </p>
-            <div class="formula">
-                LTV = Debt ÷ Total Portfolio Value × 100
+           <div class="alert-warning">
+                <strong>Not Financial Advice:</strong> Educational simulation only. Use of this tool does not constitute financial, investment, legal, or tax advice.
             </div>
+
+          <p style="text-align: center; margin: 24px 0;">
+                <button id="jumpToCalculator" class="calc-btn calc-btn-secondary" style="width: auto; display: inline-block; margin: 0;">Jump to Calculator ↓</button>
+            </p>
+
+            <h3 class="section-title-center">What Would the Perfect Wealth Strategy Look Like?</h3>
             <p>
-                <strong>Leverage ratio</strong> expresses the same position differently: total position divided by equity. A 60% LTV equals a 2.5x leverage ratio ($100K ÷ $40K).
+                An ideal long-term wealth accumulation strategy prioritizes four criteria:
+            </p>
+            <ul class="compact-list">
+                <li><strong>Simplicity:</strong> No market timing, no stock picking, no financial degree. A mechanical rule executable for 30 years without active management.</li>
+                <li><strong>Recoverable Risk:</strong> Downturns occur. The strategy must be maintainable through good and bad market cycles.</li>
+                <li><strong>Excess Returns:</strong> Consistent outperformance of a benchmark strategy over long periods.</li>
+                <li><strong>Efficiency:</strong> Minimized taxes and fees.</li>
+            </ul>
+            <p>
+                Liquidity is not a primary concern for wealth accumulation. Savings accounts serve that purpose.
+            </p>
+            <div class="info-box">
+                Everything that follows depends on one assumption: <strong>broad market indexes trend upward over multi-decade periods.</strong> This is not a guarantee, but has held for nearly a century.
+            </div>
+
+            <h3 class="section-title-center">The Wealth Building Benchmark: Dollar Cost Averaging</h3>
+            <p>
+                <strong>Dollar Cost Averaging (DCA)</strong> involves investing a fixed amount from each paycheck into a security, most commonly a market index fund. It is straightforward and safe, but contains a structural inefficiency: <strong>most capital is deployed late in the accumulation period</strong>, when the portfolio is largest. Late crashes dominate outcomes because dollar-weighted exposure concentrates at the end of the timeline.
             </p>
             <p>
-                The simulator uses LTV throughout because the inputs and outputs are percentages.
+                <strong>A margin account allows borrowing against securities holdings. Leverage front-loads market exposure</strong>, giving capital more time to compound, thus shifting time risk and amplifying potential returns. Losses are also amplified. If debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less than they initially deposited.
             </p>
+
+            <div class="info-box">
+                <h4 class="section-title-left" style="margin: 0;">Loan-to-Value (LTV) and Leverage Ratio</h4>
+                <p>
+                    <strong>Loan-to-Value (LTV)</strong> is debt as a percentage of total portfolio value. $40K equity, $60K borrowed, $100K portfolio: 60% LTV.
+                </p>
+                <div class="formula">
+                    LTV = Debt ÷ Total Portfolio Value × 100
+                </div>
+                <p>
+                    <strong>Leverage ratio</strong> expresses the same position differently: total position divided by equity. A 60% LTV equals a 2.5x leverage ratio ($100K ÷ $40K).
+                </p>
+                <p>
+                    The simulator uses LTV throughout because the inputs and outputs are percentages.
+                </p>
+            </div>
+
+             <div id="strategyPreamble">
+        <div id="constantPreamble" class="preamble-panel">
+            <div id="constantPreambleContent"></div>
         </div>
 
-        <h3 class="section-title-center">As Close to Ideal as Possible: Leveraged DCA</h3>
-            <p>
-                <strong>Leveraged DCA is DCA with two additions: maintaining a target LTV and avoiding voluntary sales.</strong> The same amount is deposited every month. How much gets bought depends on where LTV sits relative to target.
-            </p>
-            <p>
-                <strong>Simulator Algorithm:</strong> apply the market return to the securities position. Accrue interest on debt. The monthly budget pays down debt directly. Recalculate LTV. If below target, borrow and buy securities until back at target; if at or above target, buy nothing.
-            </p>
-
-        <div class="info-box">
-            The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). A balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption.
+        <div id="lifecyclePreamble" class="preamble-panel" hidden>
+            <div id="lifecyclePreambleContent"></div>
         </div>
+</div>
+      
 
-<!-- WORKING EXAMPLE -->
-<h4 class="section-title-left">Working Example</h4>
-<p>
-    Monthly budget of $1,000, target LTV of 50% (2:1 leverage). At target, every $1 of equity supports $1 of debt, so the baseline purchase is $2,000 ($1,000 deposit + $1,000 borrowing):
-</p>
-<ul class="compact-list">
-    <li><strong>Good month (portfolio up):</strong> Growth pushed LTV below target. The $1,000 budget pays down debt, pushing LTV further below target. The simulator then borrows and buys <strong>more than $2,000</strong> in securities to restore LTV to 50%.</li>
-    <li><strong>Okay month (flat/slightly down):</strong> LTV drifted near target. $1,000 pays down debt, simulator borrows to buy <strong>~$2,000</strong>.</li>
-    <li><strong>Bad month (portfolio crashed):</strong> LTV is above target. The $1,000 budget reduces debt, modestly improving LTV. No new securities are purchased.</li>
-</ul>
 
-        <h3 class="section-title-center">How Strategies Compare</h3>
-        <table class="comparison-table">
-            <thead>
-                <tr class="comparison-table-header">
-                    <th class="comparison-table-header"></th>
-                    <th class="comparison-table-header">Simple</th>
-                    <th class="comparison-table-header">Recoverable Risk</th>
-                    <th class="comparison-table-header">Excess Returns</th>
-                    <th class="comparison-table-header">Efficient</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="comparison-table-row">
-                    <td>Market Index DCA</td>
-                    <td class="cell-green">Yes</td>
-                    <td class="cell-green">Yes</td>
-                    <td class="cell-neutral">N/a (Baseline)</td>
-                    <td class="cell-green">Yes</td>
-                </tr>
-                <tr class="comparison-table-row">
-                    <td>Conservative Mutual Fund</td>
-                    <td class="cell-green">Yes</td>
-                    <td class="cell-green">Yes (Usually)</td>
-                    <td class="cell-red">No (After fees)</td>
-                    <td class="cell-red">No</td>
-                </tr>
-                <tr class="comparison-table-row">
-                    <td>Day Trading</td>
-                    <td class="cell-red">No</td>
-                    <td class="cell-red">No</td>
-                    <td class="cell-red">No (Usually)</td>
-                    <td class="cell-red">No</td>
-                </tr>
-                <tr class="comparison-table-row">
-                    <td>Private Wealth</td>
-                    <td class="cell-orange">Kinda (Barriers to entry and exit)</td>
-                    <td class="cell-orange">It depends</td>
-                    <td class="cell-orange">It depends</td>
-                    <td class="cell-orange">It depends</td>
-                </tr>
-                <tr class="comparison-table-row">
-                    <td>Leveraged DCA</td>
-                    <td class="cell-orange">Kinda</td>
-                    <td class="cell-orange">Kinda (LTV needs monitoring)</td>
-                    <td class="cell-green">Yes (Usually)</td>
-                    <td class="cell-orange">Kinda (Interest is tax deductible)</td>
-                </tr>
-                <tr class="comparison-table-row">
-                    <td>US Congress</td>
-                    <td class="cell-red">No</td>
-                    <td class="cell-green">Yes</td>
-                    <td class="cell-green">Yes</td>
-                    <td class="cell-green">Yes</td>
-                </tr>
-            </tbody>
-        </table>
 
-   
-
-        <h3 class="section-title-center">What the Simulator Calculates</h3>
-        <p>
-            <strong>Given a margin account, monthly budget, and a time horizon, the question becomes: what's the maximum LTV that can be responsibly maintained?</strong>
-        </p>
-        <p>
-            Too low and there are low chances of excess returns. Too high and liquidation happens in the first major crash. The simulator runs thousands of randomized market scenarios at a given target LTV to estimate outcome probabilities.
-        </p>
-        <p>
-            <strong>In general, over a long time horizon, more leverage means higher returns. By default (median risk profile), the simulator highlights strategies where fewer than 0.2% of scenarios end at or below total real deposits.</strong> The slider explores different target LTVs interactively after running the simulation.
-        </p>
-
-        <div class="info-box">
+    <div class="info-box">
             <h4 class="section-title-left" style="margin: 0;">Outputs:</h4>
             <ul class="compact-list">
                 <li><strong>Survival probability:</strong> Percentage of scenarios ending strictly above total real deposits.</li>
                 <li><strong>Wealth distribution:</strong> For surviving scenarios, final wealth compared to plain DCA with the same monthly budget.</li>
-                <li><strong>Outcome Probability Distribution:</strong> 
+                <li><strong>Outcome Probability Distribution:</strong>
                     <p>
                         Every simulation classifies into one of three mutually exclusive categories at the end of the simulation period:
                     </p>
@@ -176,20 +100,13 @@
                 </li>
             </ul>
         </div>
-    </div>
 
-    <div class="mode-toggle">
+    <div id="calculator" class="calculator-section">
+        <div class="mode-toggle">
         <button id="standardMode" class="btn-active">Standard Mode</button>
         <button id="customMode" class="btn-inactive">Custom Mode</button>
     </div>
         <div id="modeDescription"></div>
-    <div class="risk-profile-control">
-        <label style="font-weight: 500; color: #757575;">Risk Profile:</label>
-        <button id="riskAggressive" class="risk-btn">Aggressive</button>
-        <button id="riskMedian" class="risk-btn risk-btn-active">Median</button>
-        <button id="riskConservative" class="risk-btn">Conservative</button>
-    </div>
-
     <div class="warning-display-container">
         <div id="ltvWarning" class="warning-box ltv-warning" style="display: none;">
             <strong>⚠️</strong> <span id="ltvWarningText"></span>
@@ -202,84 +119,79 @@
     <div class="grid">
         <div class="input-group">
             <div class="label-wrapper">
-                <label>Simulation Period (Years)</label>
-                <div class="tooltip-icon">?</div>
+                <label>Simulation Period (Years) <div class="tooltip-icon">?</div></label>
                 <div class="tooltip-popup">Investment time horizon in years. Longer periods increase recovery probability from market downturns but extend exposure to adverse events. Outcome distribution changes with this parameter.</div>
             </div>
             <input type="number" id="loanPeriod">
         </div>
         <div class="input-group" id="monthlyBudgetGroup">
             <div class="label-wrapper">
-                <label>Monthly Budget for Investing ($)</label>
-                <div class="tooltip-icon">?</div>
+                <label>Monthly Budget for Investing ($) <div class="tooltip-icon">?</div></label>
+               
                 <div class="tooltip-popup">Monthly investment budget. Each month, this amount pays down outstanding debt first. If LTV falls below target after paydown, the simulator borrows and buys securities to restore the target ratio. If LTV is at or above target, the deposit remains as a debt reduction, improving equity without purchasing new securities.</div>
             </div>
             <input type="number" id="monthlyBudget">
         </div>
         <div class="input-group">
             <div class="label-wrapper">
-                <label id="assetLabel">Initial Deposit ($)</label>
-                <div class="tooltip-icon">?</div>
+                <label id="assetLabel">Initial Deposit ($)         <div class="tooltip-icon">?</div></label>
+       
                 <div class="tooltip-popup" id="assetTooltip">Starting capital injected at the start. This becomes equity, and the initial loan is calculated from it using target LTV. For example, $100K deposit at 50% LTV means $100K borrowed for a $200K starting position.</div>
             </div>
             <input type="number" id="assetValue" step="1">
         </div>
         <div class="input-group" id="ltvSliderGroup">
             <div class="label-wrapper">
-                <label>Target Loan-to-Value Ratio (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">The target LTV. The algorithm maintains this ratio: when portfolio growth pushes LTV below target, it borrows to buy securities and restore the ratio. When market declines push LTV above target, it buys nothing until the ratio recovers. <span id="max-ltv-tooltip"></span> is the maximum LTV in Standard Mode.</div>
+                <label>Target Loan-to-Value Ratio (%) <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">The target LTV for the starting configuration. The algorithm maintains this ratio as the portfolio evolves: when growth pushes LTV below target, it borrows to buy securities and restore the ratio; when declines push LTV above target, it buys nothing until the ratio recovers. Different models may vary the target over time. <span id="max-ltv-tooltip"></span> is the maximum LTV in Standard Mode.</div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
                 <input type="range" id="ltvSlider" min="0" max="50" step="1" value="20" style="flex: 1;">
                 <div style="min-width: 50px; font-weight: 600; color: #2196F3; text-align: right;"><span id="ltvDisplay">20</span>%</div>
             </div>
         </div>
-        <div class="input-group" id="loanAmountGroup">
-            <div class="label-wrapper">
-                <label>Initial Loan Amount ($)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Initial borrowing at the start, calculated from deposit and target LTV. In leveraged DCA, borrowing adjusts dynamically each month as the algorithm maintains target LTV. This field shows the starting position only.</div>
-            </div>
-            <input type="number" id="loanAmount" step="1">
-        </div>
+        <input type="hidden" id="loanAmount" value="0">
         <div class="input-group" id="interestRateGroup">
             <div class="label-wrapper">
-                <label>Borrowing Rate (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Annual interest rate on borrowed capital. A common assumption is ~<span id="interest-rate-tooltip"></span> based on historical prime rates plus lender spread. This cost accrues on outstanding debt every month. Higher rates require higher market returns for leverage to be profitable.</div>
+                <label>Initial Prime Rate (%) <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">The starting benchmark borrowing rate before the lender spread is added. In Standard Mode the model assumes <span id="prime-rate-tooltip"></span> as the initial prime rate. More advanced models can allow this to vary over time.</div>
             </div>
-            <input type="number" id="interestRate" step="0.1">
+            <input type="number" id="primeRate" step="0.1">
+        </div>
+        <div class="input-group" id="spreadRateGroup">
+            <div class="label-wrapper">
+                <label>Initial Lender Spread (%) <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">The starting lender spread added to the prime rate to produce the effective borrowing cost. In Standard Mode the starting assumption is <span id="spread-rate-tooltip"></span> above the prime rate, for a combined <span id="interest-rate-tooltip"></span> annual cost.</div>
+            </div>
+            <input type="number" id="spreadRate" step="0.1">
         </div>
         <div class="input-group">
             <div class="label-wrapper">
-                <label>Expected Annual Return (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Expected annual return of the underlying portfolio. The S&amp;P 500 has averaged ~<span id="growth-tooltip"></span> historically. This is the drift parameter in geometric Brownian motion. Actual monthly returns vary significantly around this mean.</div>
+                <label>Initial Expected Return (%) <div class="tooltip-icon">?</div>
+</label>
+                <div class="tooltip-popup">Starting expectation for the underlying portfolio return. This is the initial drift assumption for the model, and it may evolve over time in more advanced simulators. The S&amp;P 500 has averaged ~<span id="growth-tooltip"></span> historically.</div>
             </div>
             <input type="number" id="growth" step="0.1">
         </div>
         <div class="input-group">
             <div class="label-wrapper">
-                <label>Market Volatility (Annual %)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Annual standard deviation of portfolio returns. <span id="volatility-tooltip"></span> reflects typical S&amp;P 500 volatility. The simulator uses this to generate realistic monthly scenarios: some months +8%, others -6%. Higher volatility increases both upside potential and margin call probability.</div>
+                <label>Initial Volatility (Annual %)  <div class="tooltip-icon">?</div></label>
+                  
+                <div class="tooltip-popup">This is the initial conditional volatility used by the model; more advanced specifications can update it each period. <span id="volatility-tooltip"></span> reflects a typical S&amp;P 500 baseline.</div>
             </div>
             <input type="number" id="vol" step="0.1">
         </div>
         <div class="input-group">
             <div class="label-wrapper">
-                <label>Margin Call Threshold (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">The maximum LTV before the lender forces liquidation. If LTV exceeds this threshold at any point, the lender sells securities to restore the threshold ratio. The simulation continues without halting. <span id="margin-call-tooltip"></span> is standard.</div>
+                <label>Initial Margin Call Threshold (%) <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">The starting maximum LTV before the lender forces liquidation. In some models this threshold stays fixed; in others it may vary with regime, account structure, or lender rules. This value is treated as the initial condition for the simulation. <span id="margin-call-tooltip"></span> is a common baseline.</div>
             </div>
             <input type="number" id="marginCall" step="0.1">
         </div>
         <div class="input-group">
             <div class="label-wrapper">
-                <label>Inflation Rate (%)</label>
-                <div class="tooltip-icon">?</div>
-                <div class="tooltip-popup">Annual inflation rate used to convert nominal wealth to real dollars (today's purchasing power). Locked to <span id="inflation-tooltip"></span> in Standard Mode based on long-term historical averages.</div>
+                <label>Initial Inflation Rate (%) <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Starting inflation assumption for the model. This value is used to convert nominal wealth into real dollars, future models may allow inflation to vary stochastically over time.</div>
             </div>
             <input type="number" id="inflationRate" step="0.1">
         </div>
@@ -319,6 +231,7 @@
         
         <div id="dynamicSummary" class="strategy-summary"></div>
     </div>
+    </div>
 
     <div class="social-section">
         <h3 class="section-title-left">Connect</h3>
@@ -339,7 +252,7 @@
         <h1> How This Calculator Works</h1>
         
         <p id="monte-carlo-intro">
-            This tool uses Monte Carlo simulation with geometric Brownian motion and tail risk modeling to test leveraged investing strategies across <span id="sim-count-method"></span> randomized market scenarios per strategy.
+            This tool uses Monte Carlo simulation to test leveraged investing strategies across <span id="sim-count-method"></span> randomized market scenarios per strategy.
         </p>
 
         <h4 class="section-title-left">Step 1: Define Initial Conditions</h4>
@@ -359,39 +272,17 @@
             For each LTV strategy, the simulator runs <span id="sim-count-step3-2"></span> randomized market scenarios. For the baseline (DCA with no borrowing), <span id="baseline-sims-step3-2"></span> scenarios run for higher statistical precision.
         </p>
         <p>
-    Each simulation models monthly market returns using a random-walk (GBM) model with average return and volatility. An additional black swan mechanism captures rare large crashes. Each month executes in this order:
+            Each simulation runs a sequence of monthly steps. The model is flexible about the market movement generator, but the account logic remains the same:
         </p>
         <ol class="compact-numbered">
-            <li><strong>Rare Crash Simulation:</strong> Separately roll for an outsized single month drop on the securities portion of the portfolio (Merton jump-diffusion model).</li>
-            <li><strong>GBM:</strong> Normal market movement modeled using expected return and volatility parameters.</li>
-            <li><strong>Interest Accrual:</strong> Debt grows by monthly interest rate (annual_rate / 12).</li>
-            <li><strong>Margin Call Check:</strong> If LTV exceeds threshold, lender forces liquidation to restore threshold ratio. Simulation continues.</li>
-            <li><strong>Deposit:</strong> Monthly budget pays down debt directly.</li>
-            <li><strong>LTV Restoration:</strong> If LTV falls below target, borrow and buy securities to reach target LTV.</li>
+            <li><strong>Run market movements:</strong> Generate the monthly return or shock process for the securities portion of the portfolio. The simulator can swap in different market models without changing the rest of the logic.</li>
+            <li><strong>Interest accrual:</strong> Debt grows by the monthly cost of borrowing.</li>
+            <li><strong>Check margin:</strong> If LTV exceeds the threshold, the lender forces a liquidation to restore the margin requirement.</li>
+            <li><strong>Deposit:</strong> The monthly budget pays down debt directly.</li>
+            <li><strong>LTV restore:</strong> If LTV falls below target, the model borrows and buys securities to restore the target ratio.</li>
         </ol>
-       
-        <div class="formula formula-note">
-            <h4>Technical Notes:</h4>
-            The account tracks only two state variables: securities and debt. and handles purchases and sales by concurrently adjusting both. LTV caps at 0% by definition and arithmetic handles the rest. 
 
-            <p> Worked example:
-                <ol>
-                    <li>At time t=0, debt = 0 and securities = 0</li>
-                    <li>Deposit = 1000$ thus debt = -1000$</li>
-                    <li>Purchase 2000$ in securities to reach target LTV of 50%</li>
-                    <li>Securities = 0 + 2000$ and debt = -1000$ + 2000$</li>
-                    <li>At time t=1, securities = 2000$ and debt = 1000$ (correct)</li>
-                </ol>
-            </p>
 
-            <p>
-                Tradeoffs made for simplicity:
-                <ul class="compact-list nested-list">
-                    <li>Jumps are rolled randomly between 15-30% (as opposed to lognormal) without mean reversion.</li>
-                    <li>All trades execute as block trades with no slippage. Kyle's Lambda may be implemented later.</li>
-                </ul>
-            </p>
-        </div>
 
         <h4 class="section-title-left">Step 4: Calculate Real Wealth (Inflation-Adjusted)</h4>
         <p>
@@ -407,7 +298,7 @@
             Standard Mode uses research-backed defaults biased toward risk reduction:
         </p>
         <ul class="compact-list" id="standard-assumptions-list">
-            <li><strong>Interest Rate: <span id="interest-assumptions"></span></strong> — Canadian Prime Rate ~6% plus 1% lender spread. Higher than early-2026 rates to account for potential rate increases over <span id="loan-period-assumptions"></span>-year period.</li>
+            <li><strong>Borrowing Rate: <span id="interest-assumptions"></span></strong> — Prime rate <span id="prime-rate-tooltip"></span> plus lender spread <span id="spread-rate-tooltip"></span> equals <span id="interest-rate-tooltip"></span> annual cost. Higher than early-2026 rates to account for potential rate increases over <span id="loan-period-assumptions"></span>-year period.</li>
             <li><strong>Market Growth: <span id="growth-assumptions"></span> per year</strong> — S&P 500 historical average 1950-2024 with dividend reinvestment.</li>
             <li><strong>Volatility: <span id="volatility-assumptions"></span> per year</strong> — S&P 500 standard deviation. Annual returns distribute around the mean with this volatility, capturing observed market cycle behavior.</li>
             <li><strong>Margin Call Threshold: <span id="margin-assumptions"></span> LTV</strong> — This is what Wealthsimple uses.</li>
@@ -425,51 +316,58 @@
         </p>
         <ul class="compact-list">
             <li><strong>Taxes:</strong> Capital gains taxes, dividend taxes, interest deductibility not modeled. Tax treatment varies by jurisdiction and can significantly impact returns.</li>
-            <li><strong>Variable Interest Rates:</strong> Model assumes fixed borrowing rate. Real rates fluctuate with central bank policy and credit conditions.</li>
             <li><strong>Fees & Transaction Costs:</strong> Management fees, trading commissions, bid-ask spreads excluded.</li>
-            <li><strong>Market Regime Changes:</strong> Model assumes returns follow consistent distribution. Real markets experience structural shifts, prolonged bear markets, black swan events beyond the 15-30% jump model.</li>
             <li><strong>Behavioral Factors:</strong> Panic-selling during downturns, inability to maintain deposits during job loss, psychological stress not modeled.</li>
             <li><strong>No Voluntary Sales:</strong> Simulation never adjusts strategy or sells voluntarily. Real investors would deleverage proactively, which would reduce ruin probability.</li>
         </ul>
-        <h3 class="section-title-left">Economic Theory References</h3>
+
+
+        <h4 class="section-title-left">Technical Notes</h4>
+        <p>
+            The model keeps a small but general state vector: <strong>current portfolio value, outstanding debt, target LTV, borrowing cost, inflation, expected return (drift), and volatility.</strong> These are the current state variables for the simulation, and they may evolve over time depending on the model.
+        </p>
+        <p>
+            A GBM implementation may keep them fixed for a period, while richer models can let drift, volatility, inflation, or borrowing conditions vary by regime or time. The account mechanics remain the same; only the process generating the market and financing environment changes.
+        </p>
+
+  
+        <h3 class="section-title-left">Economic Theory & Model Variants</h3>
         
         <div class="reference" id="reference-leverage">
-            <strong>Leverage & The Spread:</strong> Leveraged investing depends on <strong>positive carry</strong>: borrowing at <span id="interest-reference-1"></span> to invest at <span id="growth-reference-1"></span> captures the <span id="spread-reference-1"></span> spread on borrowed capital. The spread accrues only when markets rise. In market declines, debt costs <span id="interest-reference-1b"></span> while asset value falls—reversing the dynamic. See <a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Investopedia's carry trade explanation</a>.
+            <strong><a href="https://www.investopedia.com/terms/c/carry.asp" target="_blank">Leverage & The Spread</a>:</strong> Leveraged investing depends on <strong>positive carry</strong>: borrowing at <span id="interest-reference-1"></span> to invest at <span id="growth-reference-1"></span> captures the <span id="spread-reference-1"></span> spread on borrowed capital. The spread accrues only when markets rise; in declines, debt costs <span id="interest-reference-1b"></span> while asset value falls.
         </div>
-        
+
         <div class="reference">
-            <strong>Geometric Brownian Motion:</strong> Stock price modeling uses <a href="https://www.investopedia.com/terms/g/geometric-brownian-motion.asp" target="_blank">geometric Brownian motion</a>—a random walk with drift. The Black-Scholes option pricing model uses this framework. GBM maintains boundary conditions: losses capped at -100%, upside theoretically unlimited, volatility compounds naturally.
+            <strong><a href="https://www.britannica.com/technology/Monte-Carlo-method" target="_blank">Monte Carlo Simulation</a>:</strong> Run thousands of randomized scenarios to estimate the probability distribution of outcomes. This lets the calculator compare the odds of ruin, underperformance, and outperformance under a range of borrowing and market conditions.
         </div>
-        
+
         <div class="reference">
-            <strong>Merton Jump-Diffusion:</strong> Extension of GBM that incorporates sudden discrete jumps alongside continuous diffusion. Models the possibility of rare large moves that standard GBM underweights. Used in derivative pricing and risk management.
+            <strong><a href="https://en.wikipedia.org/wiki/Geometric_Brownian_motion" target="_blank">Geometric Brownian Motion</a>:</strong> A classic stochastic process for market returns: random but with drift and volatility. It is one possible market oscillator, and the simulator is structured so other generators can replace it without changing the debt, margin, deposit, or LTV mechanics.
         </div>
-        
+
         <div class="reference">
-            <strong>Monte Carlo Simulation:</strong> Generates outcome distributions by running scenarios thousands of times with randomized market variations. See <a href="https://www.britannica.com/technology/Monte-Carlo-method" target="_blank">Britannica</a> and <a href="https://www.khanacademy.org/economics-finance-domain/core-finance/interest-debt/pq-mnt-wealth/a/monte-carlo-simulation" target="_blank">Khan Academy</a>. NASA, insurance companies, and hedge funds use this for stress-testing.
+            <strong><a href="https://en.wikipedia.org/wiki/Merton_jump-diffusion_model" target="_blank">Merton Jump-Diffusion</a>:</strong> Adds occasional discontinuous jumps to a base diffusion process, helping represent severe but infrequent market shocks. This is one example of a heavy-tailed return model that may be used in place of a smoother market generator.
+        </div>
+
+        <div class="reference">
+            <strong><a href="https://en.wikipedia.org/wiki/GARCH_model" target="_blank">GARCH</a>:</strong> A volatility-clustering model where shocks affect future variance. This is a useful alternative when the market oscillator should capture changing volatility rather than a fixed annualized assumption.
+        </div>
+
+        <div class="reference">
+            <strong><a href="https://en.wikipedia.org/wiki/Markov_chain" target="_blank">Markov Chains</a>:</strong> A regime-based approach where the market moves between states like calm, stressed, and crisis. These models are helpful when the return process itself depends on macro regime rather than a single diffusion process.
         </div>
         
         <div class="reference" id="reference-margin-call">
-            <strong>Margin Calls & Forced Liquidation:</strong> Lenders enforce maximum Loan-to-Value ratios. See <a href="https://www.investopedia.com/terms/m/margincall.asp" target="_blank">Investopedia's margin call explanation</a>. Breaching the ratio triggers forced liquidation: positions sold, debt repaid from proceeds. This occurred during 2008 and 2020. Standard Mode uses <span id="margin-reference-4"></span> LTV; lender thresholds range 40-50% (conservative) to 75-80% (aggressive).
+            <strong><a href="https://www.investopedia.com/terms/m/margincall.asp" target="_blank">Margin Calls & Forced Liquidation</a>:</strong> Lenders enforce maximum Loan-to-Value ratios. Breaching the ratio triggers forced liquidation: positions are sold, debt is repaid from proceeds, and the simulation continues. Standard Mode uses <span id="margin-reference-4"></span> LTV; lender thresholds range from roughly 40-50% (conservative) to 75-80% (aggressive).
         </div>
         
         <div class="reference" id="reference-inflation">
-            <strong>Real vs. Nominal Returns:</strong> Future dollars have different purchasing power than current dollars. This calculator converts all results to current purchasing power using the specified inflation rate. See <a href="https://www.investopedia.com/terms/r/realinterestrate.asp" target="_blank">Investopedia on real interest rates</a> and <a href="https://www.khanacademy.org/economics-finance-domain/macroeconomics/aggregate-demand-supply/inflation-tutorial/v/inflation-and-real-return" target="_blank">Khan Academy</a>.
+            <strong><a href="https://www.investopedia.com/terms/r/realinterestrate.asp" target="_blank">Real vs. Nominal Returns</a>:</strong> Future dollars have different purchasing power than current dollars. This calculator converts all results to current purchasing power using the specified inflation rate. See also <a href="https://www.khanacademy.org/economics-finance-domain/macroeconomics/aggregate-demand-supply/inflation-tutorial/v/inflation-and-real-return" target="_blank">Khan Academy</a> for a plain-language explanation.
         </div>
 
-        <h3 class="section-title-left">Further Reading</h3>
-        <p style="font-size: 0.9rem;">
-            <a href="#" target="_blank">Poisson Distribution (Khan Academy)</a> — Framework for modeling rare event frequency.
-        </p>
-        <p style="font-size: 0.9rem;">
-            <a href="https://en.wikipedia.org/wiki/Merton_jump-diffusion_model" target="_blank">Merton Jump-Diffusion Model (Wikipedia)</a> — Mathematical formulation of the crash simulation.
-        </p>
-        <p style="font-size: 0.9rem;">
-            <a href="https://www.nber.org/system/files/working_papers/w5793/w5793.pdf" target="_blank">Lifecycle Investing (Ayres & Nalebuff, 2008)</a> — Original academic paper on leveraging early in life for time-risk diversification.
-        </p>
-        <p style="font-size: 0.9rem;">
-            <a href="https://www.investopedia.com/terms/k/kyles-lambda.asp" target="_blank">Kyle's Lambda (Investopedia)</a> — Price impact and market microstructure metric.
-        </p>
+        <div class="reference">
+            <strong><a href="https://www.nber.org/system/files/working_papers/w5793/w5793.pdf" target="_blank">Lifecycle Investing</a>:</strong> Ayres & Nalebuff's paper is a classic argument for using leverage earlier in life when you have more time and human capital to absorb drawdowns.
+        </div>
     </div>
 </div>
 

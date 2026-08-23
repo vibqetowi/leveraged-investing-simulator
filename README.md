@@ -46,31 +46,6 @@ Open browser console (`F12`) and look for:
 
 ## Architecture
 
-```
-┌─────────────────────┐
-│   UI (calculatorhandler)    │  Main Thread
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│  integration.js     │  Routes Wasm/JS
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│   adapter.js        │  Marshals Data
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│simulationworker.js │  Background Thread
-└──────────┬──────────┘
-           │
-           ↓
-┌─────────────────────┐
-│   sim.wasm          │  Native Speed
-└─────────────────────┘
-```
 
 ## Support Files
 

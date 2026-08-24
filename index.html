@@ -52,13 +52,14 @@
             <p>
                 <strong>Dollar Cost Averaging (DCA)</strong> involves investing a fixed amount from each paycheck into a security, most commonly a market index fund. It is straightforward and safe, but contains a structural inefficiency: <strong>most capital is deployed late in the accumulation period</strong>, when the portfolio is largest. Late crashes dominate outcomes because dollar-weighted exposure concentrates at the end of the timeline.
             </p>
-            <p>
-                <strong>A margin account allows borrowing against securities holdings. Leverage front-loads market exposure</strong>, giving capital more time to compound, thus shifting time risk and amplifying potential returns. Losses are also amplified. If debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less than they initially deposited.
-            </p>
+
 
             <div class="box box--info">
-                <h3 class="section-title-left">Loan-to-Value (LTV) and Leverage Ratio</h3>
+                <h3 class="section-title-left">Margin, Leverage, and LTV</h3>            
                 <div class="info-box-content">
+                <p>
+                <strong>A margin account allows borrowing against securities holdings.</strong> Leverage (borrowing to invest) amplifies losses more than gains. If debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less than they initially deposited.
+            </p>
                     <p>
                         <strong>Loan-to-Value (LTV)</strong> is debt as a percentage of total portfolio value. $40K equity, $60K borrowed, $100K portfolio: 60% LTV.
                     </p>
@@ -82,8 +83,10 @@
                 <strong>Simulator Algorithm:</strong> apply the market return to the securities position. Accrue interest on debt. The monthly budget pays down debt directly. Recalculate LTV. If below target, borrow and buy securities until back at target; if at or above target, buy nothing.
             </p>
 
-        <div class="info-box">
-            The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). A balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption.
+        <div class="box box--info box--tight">
+            <h3>Portfolio Assumptions</h3>
+                            <div class="info-box-content">            The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). A balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption.</div>
+
         </div>
 
 <!-- WORKING EXAMPLE -->
@@ -366,6 +369,7 @@
         </ol>
 <div class="box box--info" style="margin-top: 24px;">
     <h3 class="section-title-left" style="margin: 0;">Market Models Currently Supported</h3>
+    <div class="info-box-content">
 
     <p>
         A market simulator needs two components: a way to generate routine returns, and a way to generate crashes.
@@ -406,6 +410,7 @@
     <p style="font-size: 0.85rem; color: #666; margin-top: 12px;">
         The simulator is structured so other oscillators (GARCH, Heston, Markov regime-switching) can replace GBM without changing the account mechanics. Similarly, alternative tail models could replace Merton. Currently, GBM + Merton is the only implemented configuration.
     </p>
+    </div>
 </div>
 
         <h4 class="section-title-left">Step 4: Calculate Real Wealth (Inflation-Adjusted)</h4>
@@ -419,6 +424,7 @@
 
         <div class="box box--info" style="margin-top: 24px;">
               <h3 class="section-title-left">Standard Mode Assumptions:</h3>
+        <div class="info-box-content">
         <p>
             Standard Mode uses research-backed defaults biased toward risk reduction:
         </p>
@@ -434,6 +440,7 @@
         <p style="font-size: 0.9rem; color: #666;">
             These parameters derive from long-term historical data. Custom Mode permits parameter adjustment based on specific lending terms or market assumptions.
         </p>
+        </div>
         </div>
 
       
@@ -489,6 +496,7 @@
         </div>
 
 
+</div>
 </div>
 
 <script src="scripts/calculatorHandler.js"></script>

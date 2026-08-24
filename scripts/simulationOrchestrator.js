@@ -1,9 +1,7 @@
 /**
- * this creates one worker per required strategy and configures them with the proper inputs
-
-/**
- * Extract UI inputs in format expected by both old and new simulation engines
+ * Creates one worker per required strategy and configures them with the proper inputs
  */
+
 /**
  * Check if WebAssembly is supported
  */

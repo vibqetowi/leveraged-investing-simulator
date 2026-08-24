@@ -8,13 +8,6 @@
  */
 const CopywritingHelpers = {
     /**
-     * Format percentage for display
-     */
-    formatPercent(value) {
-        return `${value}%`;
-    },
-
-    /**
      * Get effective borrowing rate description
      */
     getInterestRateText() {
@@ -89,54 +82,6 @@ const CopywritingHelpers = {
      */
     getBaseCaseSimulationsText() {
         return UI_CONSTANTS.BASE_CASE_SIMULATIONS.toLocaleString();
-    },
-
-    /**
-     * Get number of strategies text
-     */
-    getNumStrategiesText() {
-        return UI_CONSTANTS.NUM_STRATEGIES;
-    },
-
-    /**
-     * Get total scenarios text (1 benchmark + strategies)
-     */
-    getTotalScenariosText() {
-        return UI_CONSTANTS.NUM_STRATEGIES + ' scenarios (1 benchmark + ' + (UI_CONSTANTS.NUM_STRATEGIES - 1) + ' strategies)';
-    },
-
-    /**
-     * Get default loan period text
-     */
-    getDefaultLoanPeriodText() {
-        return DEFAULT_INPUTS.LOAN_PERIOD;
-    },
-
-    /**
-     * Update all dynamic text in the page
-     */
-    updateAllDynamicText() {
-        // Update all elements with data-config attributes
-        document.querySelectorAll('[data-config-value]').forEach(element => {
-            const configPath = element.getAttribute('data-config-value');
-            const value = this.getConfigValue(configPath);
-            if (value !== null) {
-                element.textContent = value;
-            }
-        });
-    },
-
-    /**
-     * Get config value by path (e.g., "STANDARD_MODE_DEFAULTS.INTEREST_RATE")
-     */
-    getConfigValue(path) {
-        const parts = path.split('.');
-        let value = window;
-        for (const part of parts) {
-            value = value[part];
-            if (value === undefined) return null;
-        }
-        return value;
     },
 
     /**
@@ -266,14 +211,6 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Get asset label for LTV input
-     */
-    getAssetLabelLTV() {
-        return 'Starting LTV (%)';
-    },
-
-
-    /**
      * Get simulation error message
      */
     getSimulationErrorMessage(message) {
@@ -385,14 +322,6 @@ const CopywritingHelpers = {
             spread,
             fixSuggestion: []
         };
-    },
-
-    /**
-     * Generate diagnostic fix suggestions by category (deprecated - use _suggestFixes internally)
-     * Kept for backward compatibility during refactoring
-     */
-    generateDiagnosticFix(category, trinaryStats) {
-        return [];
     },
 
     /**

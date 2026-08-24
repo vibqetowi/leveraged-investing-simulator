@@ -35,12 +35,24 @@ function setInputLocked(element, isLocked) {
     element.classList.toggle('input-readonly', isLocked);
 }
 
+function setInputLocked(element, isLocked) {
+    if (!element) return;
+    // Use a single lock path so all standard-mode fields look and behave the same.
+    element.disabled = false;
+    element.readOnly = isLocked;
+    element.classList.toggle('input-readonly', isLocked);
+}
+
 /**
  * Mode Management (Standard vs Custom)
  */
 function setMode(mode) {
     currentMode = mode;
     const isStandard = mode === 'standard';
+    const standardModeButton = document.getElementById('standardMode');
+    const customModeButton = document.getElementById('customMode');
+    if (standardModeButton) standardModeButton.classList.toggle('btn--active', isStandard);
+    if (customModeButton) customModeButton.classList.toggle('btn--active', !isStandard);
     const standardModeButton = document.getElementById('standardMode');
     const customModeButton = document.getElementById('customMode');
     if (standardModeButton) standardModeButton.classList.toggle('btn--active', isStandard);
@@ -71,6 +83,7 @@ function setMode(mode) {
         if (ltvSlider) ltvSlider.disabled = false;
         if (loanAmountInput) {
             setInputLocked(loanAmountInput, true);
+            setInputLocked(loanAmountInput, true);
         }
         
         // Lock standard mode parameters
@@ -91,17 +104,20 @@ function setMode(mode) {
         
         // Reset slider color in standard mode
         ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
+        ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
         
         // Calculate loan amount from LTV and collateral
         updateLoanFromSlider();
         
         // Clear LTV warning in standard mode
         document.getElementById('ltvWarning').classList.add('is-hidden');
+        document.getElementById('ltvWarning').classList.add('is-hidden');
     } else {
         // Custom Mode: slider max 100%, hidden loan amount remains internal
         if (ltvSlider) ltvSlider.max = 100;
         if (ltvSlider) ltvSlider.disabled = false;
         if (loanAmountInput) {
+            setInputLocked(loanAmountInput, false);
             setInputLocked(loanAmountInput, false);
         }
         
@@ -125,9 +141,12 @@ function validateAndColorLTV() {
     const ltvWarningIcon = document.getElementById('ltvWarningIcon');
     const ltvWarningText = document.getElementById('ltvWarningText');
     ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
+    ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
     
     if (ltv >= 100) {
         // Red slider and warning for over 100% LTV
+        ltvSlider.classList.add('strategy-slider--danger');
+        ltvWarning.classList.remove('is-hidden');
         ltvSlider.classList.add('strategy-slider--danger');
         ltvWarning.classList.remove('is-hidden');
         ltvWarningIcon.textContent = '🚨';
@@ -136,10 +155,14 @@ function validateAndColorLTV() {
         // Yellow slider and warning for 35%+ LTV
         ltvSlider.classList.add('strategy-slider--warning');
         ltvWarning.classList.remove('is-hidden');
+        ltvSlider.classList.add('strategy-slider--warning');
+        ltvWarning.classList.remove('is-hidden');
         ltvWarningIcon.textContent = '⚠️';
         ltvWarningText.textContent = 'Loan-to-Value ratio exceeds 35%. Standard mode caps at 35% to match historical best practices.';
     } else {
         // Purple slider (default) and no warning
+        ltvSlider.classList.add('strategy-slider--default');
+        ltvWarning.classList.add('is-hidden');
         ltvSlider.classList.add('strategy-slider--default');
         ltvWarning.classList.add('is-hidden');
     }
@@ -200,17 +223,6 @@ function updateLoanFromCollateral() {
 }
 
 /**
- */
-function handleBorrowingRateChange() {
-}
-
-/**
- * Handle budget or period changes
- */
-function handleBudgetOrPeriodChange() {
-}
-
-/**
  * Main Simulation Runner - Uses WebAssembly if available, falls back to JS
  */
 async function runSimulation() {
@@ -267,7 +279,8 @@ function getSimulationInputs() {
         years,
         monthlyBudget,
         interestRate,
-        monthlyRate,
+        primeRate,
+        spreadRate,
         growth,
         volatility,
         inflation,
@@ -285,6 +298,7 @@ function getSimulationInputs() {
 /**
  * Find Target Strategy Index based on Risk Target
  * Chooses the closest survival rate at or above the target,
+ * or the maximum target-LTV strategy if none are safe.
  * or the maximum target-LTV strategy if none are safe.
  * Only considers leveraged strategies (indices 0-9).
  */
@@ -324,6 +338,7 @@ function renderHistogramLegacy(strategyIndex) {
     if (!simulationResults) {
         console.error('[Histogram] No simulationResults available from integration layer');
         document.getElementById('histogramChart').innerHTML = '<p class="chart-error">Error: No simulation results from integration layer</p>';
+        document.getElementById('histogramChart').innerHTML = '<p class="chart-error">Error: No simulation results from integration layer</p>';
         return;
     }
     
@@ -335,11 +350,13 @@ function renderHistogramLegacy(strategyIndex) {
     if (!wealthData || !benchmarkData) {
         console.error('[Histogram] Integration layer did not provide complete wealth arrays');
         document.getElementById('histogramChart').innerHTML = '<p class="chart-error">Error: Integration layer did not provide complete data</p>';
+        document.getElementById('histogramChart').innerHTML = '<p class="chart-error">Error: Integration layer did not provide complete data</p>';
         return;
     }
     
     if (wealthData.length === 0 || benchmarkData.length === 0) {
         console.warn('[Histogram] Empty data arrays - all simulations resulted in ruin');
+        document.getElementById('histogramChart').innerHTML = '<p class="chart-error">No data available - all simulations resulted in ruin.</p>';
         document.getElementById('histogramChart').innerHTML = '<p class="chart-error">No data available - all simulations resulted in ruin.</p>';
         return;
     }
@@ -599,6 +616,7 @@ function updateSummary(strategyIndex) {
 
     // Get narrative text from copywriting helpers
     const narrative = CopywritingHelpers.getStrategySummaryNarrative(strategy.targetLTV, survivalRate, medianRealWealth, benchmarkMedian, delta);
+    const narrative = CopywritingHelpers.getStrategySummaryNarrative(strategy.targetLTV, survivalRate, medianRealWealth, benchmarkMedian, delta);
 
     // Build the summary HTML based on mode
     let summaryHTML = '';
@@ -607,6 +625,10 @@ function updateSummary(strategyIndex) {
         // RISK-SHIFTING: Educational content about risk-shifting
         summaryHTML = `
         <!-- RISK-SHIFTING ANALYSIS -->
+        <div class="result-hero-lifecycle">
+            <h3>📊 Risk-Shifting</h3>
+            <p>
+                This strategy borrows once, invests immediately, and pays back over time. The goal is to shift market exposure across the investor's lifetime instead of concentrating it later in life.
         <div class="result-hero-lifecycle">
             <h3>📊 Risk-Shifting</h3>
             <p>
@@ -620,7 +642,16 @@ function updateSummary(strategyIndex) {
                 <div class="outcome-percent outcome-percent-ruin">${trinaryStats.ruinPercent.toFixed(1)}%</div>
                 <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('ruin')}</div>
                 <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('ruin')}</div>
+        <div class="outcome-grid">
+            <div class="outcome-card outcome-card-ruin">
+                <div class="outcome-percent outcome-percent-ruin">${trinaryStats.ruinPercent.toFixed(1)}%</div>
+                <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('ruin')}</div>
+                <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('ruin')}</div>
             </div>
+            <div class="outcome-card outcome-card-sucker">
+                <div class="outcome-percent outcome-percent-sucker">${trinaryStats.suckerPercent.toFixed(1)}%</div>
+                <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</div>
+                <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('sucker')}</div>
             <div class="outcome-card outcome-card-sucker">
                 <div class="outcome-percent outcome-percent-sucker">${trinaryStats.suckerPercent.toFixed(1)}%</div>
                 <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</div>
@@ -630,17 +661,26 @@ function updateSummary(strategyIndex) {
                 <div class="outcome-percent outcome-percent-profit">${trinaryStats.profitPercent.toFixed(1)}%</div>
                 <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('profit')}</div>
                 <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('profit')}</div>
+            <div class="outcome-card outcome-card-profit">
+                <div class="outcome-percent outcome-percent-profit">${trinaryStats.profitPercent.toFixed(1)}%</div>
+                <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('profit')}</div>
+                <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('profit')}</div>
             </div>
         </div>
 
+        <p class="result-intro">${narrative.strategy}</p>
         <p class="result-intro">${narrative.strategy}</p>
         <p>${narrative.outcomes}</p>
         <p><strong>${narrative.baseline}</strong></p>
         <p><strong>${narrative.leverageImpact}</strong></p>
         
         <hr class="result-divider">
+        <hr class="result-divider">
         
         <!-- RISK-SHIFTING GUIDANCE -->
+        <div class="result-guidance">
+            <h4>Evaluating Risk-Shifting</h4>
+            <p>
         <div class="result-guidance">
             <h4>Evaluating Risk-Shifting</h4>
             <p>
@@ -648,12 +688,17 @@ function updateSummary(strategyIndex) {
                 ${spreadPercent > 0 ? 'Positive spread indicates leverage shifts market exposure forward successfully.' : 'Negative spread indicates DCA outperforms leveraged deployment.'}
             </p>
             <p>
+            <p>
                 <strong>Liquidation Risk:</strong> ${trinaryStats.ruinPercent.toFixed(1)}% probability. 
+                ${trinaryStats.ruinPercent < 2 ? 'Within acceptable range (target < 2%).' : 'Exceeds acceptable threshold. Reduce target LTV or increase collateral.'}
                 ${trinaryStats.ruinPercent < 2 ? 'Within acceptable range (target < 2%).' : 'Exceeds acceptable threshold. Reduce target LTV or increase collateral.'}
             </p>
             <p>
                 <strong>Time Advantage:</strong> The "Deposits Over Time" chart shows the difference between DCA and constant-LTV leveraged deployment across the simulation period.
+            <p>
+                <strong>Time Advantage:</strong> The "Deposits Over Time" chart shows the difference between DCA and constant-LTV leveraged deployment across the simulation period.
             </p>
+            <p class="advisory">
             <p class="advisory">
                 <strong>⚠️ Advisory Required:</strong> Risk-Shifting involves tax implications, sequence-of-returns risk, and personal circumstances this simulator cannot model. Consult licensed financial advisors before implementation.
             </p>
@@ -661,8 +706,14 @@ function updateSummary(strategyIndex) {
         `;
     } else {
         // CONSTANT LTV: Show verdict and outcomes
+        // CONSTANT LTV: Show verdict and outcomes
         summaryHTML = `
 
+        <!-- CONSTANT LTV STRATEGY HEADER -->
+        <div class="result-hero">
+            <h3>📈 Constant LTV Leveraged DCA</h3>
+            <p>
+                This strategy maintains a constant target LTV while deposits and market movements change portfolio value and debt.
         <!-- CONSTANT LTV STRATEGY HEADER -->
         <div class="result-hero">
             <h3>📈 Constant LTV Leveraged DCA</h3>
@@ -674,10 +725,17 @@ function updateSummary(strategyIndex) {
         <!-- VERDICT CONTAINER (Traffic Light) -->
         <div class="result-verdict">
             <h3>${verdict.icon} ${verdict.title}</h3>
+        <div class="result-verdict">
+            <h3>${verdict.icon} ${verdict.title}</h3>
             <p>${verdict.message}</p>
         </div>
         
         <!-- OUTCOME ZONES GRID -->
+        <div class="outcome-grid">
+            <div class="outcome-card outcome-card-ruin">
+                <div class="outcome-percent outcome-percent-ruin">${trinaryStats.ruinPercent.toFixed(1)}%</div>
+                <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('ruin')}</div>
+                <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('ruin')}</div>
         <div class="outcome-grid">
             <div class="outcome-card outcome-card-ruin">
                 <div class="outcome-percent outcome-percent-ruin">${trinaryStats.ruinPercent.toFixed(1)}%</div>
@@ -688,7 +746,15 @@ function updateSummary(strategyIndex) {
                 <div class="outcome-percent outcome-percent-sucker">${trinaryStats.suckerPercent.toFixed(1)}%</div>
                 <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</div>
                 <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('sucker')}</div>
+            <div class="outcome-card outcome-card-sucker">
+                <div class="outcome-percent outcome-percent-sucker">${trinaryStats.suckerPercent.toFixed(1)}%</div>
+                <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</div>
+                <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('sucker')}</div>
             </div>
+            <div class="outcome-card outcome-card-profit">
+                <div class="outcome-percent outcome-percent-profit">${trinaryStats.profitPercent.toFixed(1)}%</div>
+                <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('profit')}</div>
+                <div class="outcome-description">${CopywritingHelpers.getOutcomeDescription('profit')}</div>
             <div class="outcome-card outcome-card-profit">
                 <div class="outcome-percent outcome-percent-profit">${trinaryStats.profitPercent.toFixed(1)}%</div>
                 <div class="outcome-label">${CopywritingHelpers.getSuccessCriteriaLabel('profit')}</div>
@@ -697,13 +763,18 @@ function updateSummary(strategyIndex) {
         </div>
 
         <p>${narrative.strategy}</p>
+        <p>${narrative.strategy}</p>
         <p>${narrative.outcomes}</p>
         <p><strong>${narrative.baseline}</strong></p>
         <p><strong>${narrative.leverageImpact}</strong></p>
         
         <hr class="result-divider">
+        <hr class="result-divider">
         
         <!-- IMPLEMENTATION SUMMARY TABLE -->
+        <div class="result-criteria">
+            <h4>Strategy Success Criteria</h4>
+            <table>
         <div class="result-criteria">
             <h4>Strategy Success Criteria</h4>
             <table>
@@ -713,8 +784,18 @@ function updateSummary(strategyIndex) {
                         <th>${CopywritingHelpers.getSuccessCriteriaHeaders().goal}</th>
                         <th>${CopywritingHelpers.getSuccessCriteriaHeaders().current}</th>
                         <th>${CopywritingHelpers.getSuccessCriteriaHeaders().status}</th>
+                    <tr>
+                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().outcome}</th>
+                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().goal}</th>
+                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().current}</th>
+                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().status}</th>
                     </tr>
                     <tr>
+                        <td><strong class="result-sucker">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</strong></td>
+                        <td>${CopywritingHelpers.getSuccessCriteriaThreshold('sucker')}</td>
+                        <td>${trinaryStats.suckerPercent.toFixed(1)}%</td>
+                        <td>
+                            <span class="result-status ${trinaryStats.suckerPercent < trinaryStats.profitPercent ? 'result-status-good' : 'result-status-warning'}">
                         <td><strong class="result-sucker">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</strong></td>
                         <td>${CopywritingHelpers.getSuccessCriteriaThreshold('sucker')}</td>
                         <td>${trinaryStats.suckerPercent.toFixed(1)}%</td>
@@ -730,6 +811,11 @@ function updateSummary(strategyIndex) {
                         <td>${trinaryStats.profitPercent.toFixed(1)}%</td>
                         <td>
                             <span class="result-status ${verdict.spread > 20 && trinaryStats.ruinPercent < 2 ? 'result-status-good' : 'result-status-warning'}">
+                        <td><strong class="result-profit">${CopywritingHelpers.getSuccessCriteriaLabel('profit')}</strong></td>
+                        <td>${CopywritingHelpers.getSuccessCriteriaThreshold('profit')}</td>
+                        <td>${trinaryStats.profitPercent.toFixed(1)}%</td>
+                        <td>
+                            <span class="result-status ${verdict.spread > 20 && trinaryStats.ruinPercent < 2 ? 'result-status-good' : 'result-status-warning'}">
                                 ${verdict.spread > 20 && trinaryStats.ruinPercent < 2 ? '✓ STRONG' : 'REVIEW'}
                             </span>
                         </td>
@@ -737,15 +823,21 @@ function updateSummary(strategyIndex) {
                 </tbody>
             </table>
             <p class="note">
+            <p class="note">
                 ${CopywritingHelpers.getSuccessCriteriaNoteText()}
             </p>
         </div>
         `;
         
         // Add diagnostic fix suggestions if available
+        // Add diagnostic fix suggestions if available
         if (verdict.fixSuggestion && verdict.fixSuggestion.length > 0) {
             const fixListHTML = verdict.fixSuggestion.map(fix => `<li>${fix}</li>`).join('');
+            const fixListHTML = verdict.fixSuggestion.map(fix => `<li>${fix}</li>`).join('');
             summaryHTML += `
+            <div class="result-fixes">
+                <h4>${CopywritingHelpers.getFixStrategyHeaderText()}</h4>
+                <ul>
             <div class="result-fixes">
                 <h4>${CopywritingHelpers.getFixStrategyHeaderText()}</h4>
                 <ul>
@@ -785,6 +877,7 @@ function renderDepositsLineChart(strategyIndex) {
     // Integration layer must provide complete data
     if (!strategy.meanSecuritiesPath || !strategy.debtPath || !benchmark.meanSecuritiesPath) {
         console.error('[DepositsLineChart] Missing cash flow schedules from integration layer');
+        document.getElementById('depositsLineChart').innerHTML = '<p class="chart-error">Error: Integration layer did not provide complete schedule data</p>';
         document.getElementById('depositsLineChart').innerHTML = '<p class="chart-error">Error: Integration layer did not provide complete schedule data</p>';
         return;
     }
@@ -946,12 +1039,17 @@ function displayResults(results) {
 
     summary.innerHTML = `
         <div class="analysis-parameters">
+        <div class="analysis-parameters">
             <strong>Analysis Parameters</strong><br>
+            <span class="analysis-parameter">Monthly Budget (Baseline): <strong>$${loanDetails.monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
+            <span class="analysis-parameter">Starting Portfolio Equity: <strong>$${presentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
+            <span class="analysis-parameter">Inflation Rate: <strong>${(loanDetails.inflationRate * 100).toFixed(1)}%</strong> (All wealth values in today's dollars)</span><br><br>
             <span class="analysis-parameter">Monthly Budget (Baseline): <strong>$${loanDetails.monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
             <span class="analysis-parameter">Starting Portfolio Equity: <strong>$${presentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
             <span class="analysis-parameter">Inflation Rate: <strong>${(loanDetails.inflationRate * 100).toFixed(1)}%</strong> (All wealth values in today's dollars)</span><br><br>
         </div>
         <strong>Starting Point:</strong> Base case at <strong>${(targetStrategy.targetLTV * 100).toFixed(1) + "% LTV"}</strong>.<br><br>
+        <em class="summary-instruction">Use the slider below to explore the leverage spectrum from the baseline to higher target LTVs.</em>
         <em class="summary-instruction">Use the slider below to explore the leverage spectrum from the baseline to higher target LTVs.</em>
     `;
 
@@ -962,6 +1060,7 @@ function displayResults(results) {
     updateSummary(targetIndex);
     
     // Show results div FIRST so Plotly can calculate proper dimensions
+    document.getElementById('results').classList.add('is-visible');
     document.getElementById('results').classList.add('is-visible');
     
     // Then render histogram with proper sizing
@@ -1027,13 +1126,23 @@ function updateSliderPills(activeIndex) {
     const selectedLtvSpan = document.getElementById('selectedLtv');
     const survivalRateSpan = document.getElementById('survivalRate');
     const outperformanceRateSpan = document.getElementById('outperformanceRate');
+    // Update selected strategy statistics
+    const selectedLtvSpan = document.getElementById('selectedLtv');
+    const survivalRateSpan = document.getElementById('survivalRate');
+    const outperformanceRateSpan = document.getElementById('outperformanceRate');
     
+    if (selectedLtvSpan && survivalRateSpan && outperformanceRateSpan) {
+        selectedLtvSpan.textContent = (selectedStrategy.targetLTV * 100).toFixed(1) + "%";
     if (selectedLtvSpan && survivalRateSpan && outperformanceRateSpan) {
         selectedLtvSpan.textContent = (selectedStrategy.targetLTV * 100).toFixed(1) + "%";
         
         const survivalRate = selectedStrategy.survivalRate;
         const outperformanceRate = selectedStrategy.trinaryStats?.profitPercent || 0;
+        const survivalRate = selectedStrategy.survivalRate;
+        const outperformanceRate = selectedStrategy.trinaryStats?.profitPercent || 0;
         
+        survivalRateSpan.textContent = Math.round(survivalRate);
+        outperformanceRateSpan.textContent = Math.round(outperformanceRate);
         survivalRateSpan.textContent = Math.round(survivalRate);
         outperformanceRateSpan.textContent = Math.round(outperformanceRate);
     }
@@ -1083,6 +1192,12 @@ document.addEventListener('DOMContentLoaded', () => {
         'spread-reference-1': CopywritingHelpers.getSpreadText(),
         'interest-reference-1b': CopywritingHelpers.getInterestRateText(),
         'margin-reference-4': CopywritingHelpers.getMarginCallText(),
+        'max-ltv-tooltip': CopywritingHelpers.getMaxLTVText(),
+        'interest-reference-1': CopywritingHelpers.getInterestRateText(),
+        'growth-reference-1': CopywritingHelpers.getGrowthRateText(),
+        'spread-reference-1': CopywritingHelpers.getSpreadText(),
+        'interest-reference-1b': CopywritingHelpers.getInterestRateText(),
+        'margin-reference-4': CopywritingHelpers.getMarginCallText(),
         'growth-assumptions': CopywritingHelpers.getGrowthRateText(),
         'volatility-assumptions': CopywritingHelpers.getVolatilityText(),
         'margin-assumptions': CopywritingHelpers.getMarginCallText(),
@@ -1090,6 +1205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'sim-count-method': CopywritingHelpers.getSimulationCountText(),
         'sim-count-step3-2': CopywritingHelpers.getSimulationCountText(),
         'baseline-sims-step3-2': CopywritingHelpers.getBaseCaseSimulationsText(),
+        'loan-period-assumptions': DEFAULT_INPUTS.LOAN_PERIOD
         'loan-period-assumptions': DEFAULT_INPUTS.LOAN_PERIOD
     };
     Object.entries(copy).forEach(([id, text]) => setText(id, text));
@@ -1103,6 +1219,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (lifecyclePreamble) {
         lifecyclePreamble.innerHTML = CopywritingHelpers.getLifecyclePreambleHtml();
     }
+
+    document.querySelectorAll('.box--info').forEach((box) => {
+        box.classList.add('is-collapsed');
+        box.setAttribute('tabindex', '0');
+        box.setAttribute('role', 'button');
+        box.setAttribute('aria-expanded', 'false');
+
+        const toggleBox = () => {
+            const isCollapsed = box.classList.toggle('is-collapsed');
+            box.setAttribute('aria-expanded', String(!isCollapsed));
+        };
+
+        box.addEventListener('click', toggleBox);
+        box.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                toggleBox();
+            }
+        });
+    });
 
     const switchPreamble = (mode) => {
         const panels = {
@@ -1193,22 +1329,3 @@ function renderHistogram(strategyIndex) {
     }, { responsive: true, displaylogo: false });
 }
 
-    document.querySelectorAll('.box--info').forEach((box) => {
-        box.classList.add('is-collapsed');
-        box.setAttribute('tabindex', '0');
-        box.setAttribute('role', 'button');
-        box.setAttribute('aria-expanded', 'false');
-
-        const toggleBox = () => {
-            const isCollapsed = box.classList.toggle('is-collapsed');
-            box.setAttribute('aria-expanded', String(!isCollapsed));
-        };
-
-        box.addEventListener('click', toggleBox);
-        box.addEventListener('keydown', (event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                toggleBox();
-            }
-        });
-    });

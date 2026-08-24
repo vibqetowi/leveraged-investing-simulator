@@ -28,6 +28,42 @@ function getEffectiveInterestRateValue() {
     return getPrimeRateValue() + getSpreadRateValue();
 }
 
+function getCurrentModelSelection() {
+    const fallbackSelection = getModelSelection(getStandardDefaults().MODEL_ID);
+    return {
+        oscillatorId: document.getElementById('oscillatorSelect')?.value || fallbackSelection.oscillatorId,
+        jumpId: document.getElementById('jumpSelect')?.value || fallbackSelection.jumpId
+    };
+}
+
+function syncModelSelectors(modelId = getStandardDefaults().MODEL_ID) {
+    const selection = getModelSelection(modelId);
+    const oscillatorSelect = document.getElementById('oscillatorSelect');
+    const jumpSelect = document.getElementById('jumpSelect');
+    if (oscillatorSelect) oscillatorSelect.value = selection.oscillatorId;
+    if (jumpSelect) jumpSelect.value = selection.jumpId;
+}
+
+function populateModelSelectors() {
+    const oscillatorSelect = document.getElementById('oscillatorSelect');
+    const jumpSelect = document.getElementById('jumpSelect');
+    if (!oscillatorSelect || !jumpSelect || typeof MODEL_OPTIONS === 'undefined') return;
+
+    oscillatorSelect.innerHTML = MODEL_OPTIONS.oscillators
+        .map(option => `<option value="${option.id}">${option.label}</option>`)
+        .join('');
+    jumpSelect.innerHTML = MODEL_OPTIONS.jumps
+        .map(option => `<option value="${option.id}">${option.label}</option>`)
+        .join('');
+}
+
+function getSelectedModelId() {
+    const standardDefaults = getStandardDefaults();
+    if (currentMode === 'standard') return standardDefaults.MODEL_ID;
+    const { oscillatorId, jumpId } = getCurrentModelSelection();
+    return resolveModelId(oscillatorId, jumpId, standardDefaults.MODEL_ID);
+}
+
 /**
  * Mode Management (Standard vs Custom)
  */
@@ -40,6 +76,9 @@ function setMode(mode) {
     document.getElementById('modeDescription').innerHTML = isStandard 
         ? CopywritingHelpers.getModeStandardDescription() 
         : CopywritingHelpers.getModeCustomDescription();
+
+    const customModelControls = document.getElementById('customModelControls');
+    if (customModelControls) customModelControls.style.display = isStandard ? 'none' : 'grid';
     
     const inputs = ['growth', 'vol', 'marginCall'];
     inputs.forEach(id => {
@@ -422,7 +461,7 @@ function getSimulationInputs() {
         simulationCount: UI_CONSTANTS.SIMULATION_COUNT,
         baselineSimulationCount: UI_CONSTANTS.BASE_CASE_SIMULATIONS,
         numStrategies: UI_CONSTANTS.NUM_STRATEGIES - 1,
-        modelId: STANDARD_MODE_DEFAULTS.MODEL_ID,
+        modelId: getSelectedModelId(),
         months
     };
 }
@@ -1320,6 +1359,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calculate and set initial loan amount
     const initialLoanAmount = (DEFAULT_INPUTS.STARTING_DEPOSIT * DEFAULT_INPUTS.STARTING_LTV / 100).toFixed(0);
     document.getElementById('loanAmount').value = initialLoanAmount;
+    populateModelSelectors();
+    syncModelSelectors(STANDARD_MODE_DEFAULTS.MODEL_ID);
     
     // Set initial mode to standard
     setMode('standard');

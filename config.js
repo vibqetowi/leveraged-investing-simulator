@@ -16,8 +16,48 @@ const STANDARD_MODE_DEFAULTS = {
     MAX_LTV: 50             // Maximum LTV allowed in Standard Mode (%)
 };
 
+const MODEL_OPTIONS = {
+    oscillators: [
+        { id: 'gbm', label: 'GBM' }
+    ],
+    jumps: [
+        { id: 'none', label: 'None' },
+        { id: 'merton', label: 'Merton Jump-Diffusion' }
+    ]
+};
+
+const MODEL_PROVIDER_MAP = Object.freeze({
+    'gbm:none': 0,
+    'gbm:merton': 1
+});
+
 function getEffectiveBorrowingRate(primeRate = STANDARD_MODE_DEFAULTS.PRIME_RATE, spreadRate = STANDARD_MODE_DEFAULTS.SPREAD_RATE) {
     return primeRate + spreadRate;
+}
+
+function getModelSelection(modelId = STANDARD_MODE_DEFAULTS.MODEL_ID) {
+    for (const [key, value] of Object.entries(MODEL_PROVIDER_MAP)) {
+        if (value === modelId) {
+            const [oscillatorId, jumpId] = key.split(':');
+            return { oscillatorId, jumpId };
+        }
+    }
+
+    const fallbackKey = Object.entries(MODEL_PROVIDER_MAP)
+        .find(([, value]) => value === STANDARD_MODE_DEFAULTS.MODEL_ID)?.[0] || 'gbm:none';
+    const [oscillatorId, jumpId] = fallbackKey.split(':');
+    return { oscillatorId, jumpId };
+}
+
+function resolveModelId(
+    oscillatorId = 'gbm',
+    jumpId = 'none',
+    fallbackModelId = STANDARD_MODE_DEFAULTS.MODEL_ID
+) {
+    const key = `${oscillatorId}:${jumpId}`;
+    return Object.prototype.hasOwnProperty.call(MODEL_PROVIDER_MAP, key)
+        ? MODEL_PROVIDER_MAP[key]
+        : fallbackModelId;
 }
 
 // Default Input Values
@@ -101,10 +141,16 @@ if (typeof window !== 'undefined') {
 if (typeof window !== 'undefined') {
     window.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
     window.DEFAULT_INPUTS = DEFAULT_INPUTS;
+    window.MODEL_OPTIONS = MODEL_OPTIONS;
+    window.MODEL_PROVIDER_MAP = MODEL_PROVIDER_MAP;
+    window.getModelSelection = getModelSelection;
+    window.resolveModelId = resolveModelId;
     window.UI_CONSTANTS = UI_CONSTANTS;
     window.config = {
         STANDARD_MODE_DEFAULTS,
         DEFAULT_INPUTS,
+        MODEL_OPTIONS,
+        MODEL_PROVIDER_MAP,
         UI_CONSTANTS
     };
 }
@@ -112,10 +158,16 @@ if (typeof window !== 'undefined') {
 if (typeof globalThis !== 'undefined') {
     globalThis.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
     globalThis.DEFAULT_INPUTS = DEFAULT_INPUTS;
+    globalThis.MODEL_OPTIONS = MODEL_OPTIONS;
+    globalThis.MODEL_PROVIDER_MAP = MODEL_PROVIDER_MAP;
+    globalThis.getModelSelection = getModelSelection;
+    globalThis.resolveModelId = resolveModelId;
     globalThis.UI_CONSTANTS = UI_CONSTANTS;
     globalThis.config = globalThis.config || {
         STANDARD_MODE_DEFAULTS,
         DEFAULT_INPUTS,
+        MODEL_OPTIONS,
+        MODEL_PROVIDER_MAP,
         UI_CONSTANTS
     };
 }
@@ -125,6 +177,10 @@ if (typeof module !== 'undefined' && module.exports) {
         STANDARD_MODE_DEFAULTS, 
         UI_CONSTANTS, 
         DEFAULT_INPUTS,
+        MODEL_OPTIONS,
+        MODEL_PROVIDER_MAP,
+        getModelSelection,
+        resolveModelId,
         calculateRequiredBufferSize 
     };
 }

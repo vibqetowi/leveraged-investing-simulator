@@ -154,14 +154,14 @@ const CopywritingHelpers = {
      * Get mode description for Standard Mode
      */
     getModeStandardDescription() {
-        return `<p><strong>Standard Mode:</strong> The simulator starts from a research-backed baseline for the monthly-deposit and target-LTV framework; Custom Mode allows you to adjust more parameters.</p>`;
+        return `<p><strong>Standard Mode:</strong> Uses the built-in baseline configuration and default WASM market model. Advanced model-selection controls stay hidden so you can focus on the headline leverage question.</p>`;
     },
 
     /**
      * Get mode description for Custom Mode
      */
     getModeCustomDescription() {
-        return `<p><strong>Custom Mode:</strong> All key inputs are unlocked so you can test different monthly budgets, borrowing costs, expected returns, volatility assumptions, and liquidation thresholds without changing the core logic for deposits and target LTV.</p>`;
+        return `<p><strong>Custom Mode:</strong> Unlocks the numeric assumptions and the prebuilt WASM model selectors. Target LTV, borrowing cost, and inflation remain constant inputs today; the selectable pieces are the market oscillator and optional jump process.</p>`;
     },
 
     /**

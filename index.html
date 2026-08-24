@@ -107,6 +107,27 @@
         <button id="customMode" class="btn-inactive">Custom Mode</button>
     </div>
         <div id="modeDescription"></div>
+    <div id="customModelControls" class="grid" style="display: none; margin-top: 16px;">
+        <div class="input-group">
+            <div class="label-wrapper">
+                <label>Oscillator <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Select the base return generator compiled into the WASM simulator. Today the shipped oscillator is GBM; future builds can add alternatives such as GARCH without changing the account mechanics.</div>
+            </div>
+            <select id="oscillatorSelect">
+                <option value="gbm">GBM</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <div class="label-wrapper">
+                <label>Jump Process <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Select the optional jump overlay compiled into the WASM simulator. None keeps a plain diffusion path; Merton adds occasional discontinuous shocks.</div>
+            </div>
+            <select id="jumpSelect">
+                <option value="none">None</option>
+                <option value="merton">Merton Jump-Diffusion</option>
+            </select>
+        </div>
+    </div>
     <div class="warning-display-container">
         <div id="ltvWarning" class="warning-box ltv-warning" style="display: none;">
             <strong>⚠️</strong> <span id="ltvWarningText"></span>
@@ -324,10 +345,10 @@
 
         <h4 class="section-title-left">Technical Notes</h4>
         <p>
-            The model keeps a small but general state vector: <strong>current portfolio value, outstanding debt, target LTV, borrowing cost, inflation, expected return (drift), and volatility.</strong> These are the current state variables for the simulation, and they may evolve over time depending on the model.
+            The current WASM runtime keeps only the evolving account path in state: <strong>securities, debt, and whether liquidation has already happened.</strong> Target LTV, borrowing cost, inflation, expected return, volatility, and the model choice are passed in as fixed inputs for each run.
         </p>
         <p>
-            A GBM implementation may keep them fixed for a period, while richer models can let drift, volatility, inflation, or borrowing conditions vary by regime or time. The account mechanics remain the same; only the process generating the market and financing environment changes.
+            Today Custom Mode exposes the prebuilt market controls only: a <strong>GBM oscillator</strong> with either <strong>no jump overlay</strong> or a <strong>Merton jump overlay</strong>. Constant LTV, interest, and inflation are still handled as fixed inputs. Future oscillators can be added without changing the debt, deposit, margin, or LTV mechanics.
         </p>
 
   
@@ -342,15 +363,15 @@
         </div>
 
         <div class="reference">
-            <strong><a href="https://en.wikipedia.org/wiki/Geometric_Brownian_motion" target="_blank">Geometric Brownian Motion</a>:</strong> A classic stochastic process for market returns: random but with drift and volatility. It is one possible market oscillator, and the simulator is structured so other generators can replace it without changing the debt, margin, deposit, or LTV mechanics.
+            <strong><a href="https://en.wikipedia.org/wiki/Geometric_Brownian_motion" target="_blank">Geometric Brownian Motion</a>:</strong> A classic stochastic process for market returns: random but with drift and volatility. It is the current base oscillator used by the simulator.
         </div>
 
         <div class="reference">
-            <strong><a href="https://en.wikipedia.org/wiki/Merton_jump-diffusion_model" target="_blank">Merton Jump-Diffusion</a>:</strong> Adds occasional discontinuous jumps to a base diffusion process, helping represent severe but infrequent market shocks. This is one example of a heavy-tailed return model that may be used in place of a smoother market generator.
+            <strong><a href="https://en.wikipedia.org/wiki/Merton_jump-diffusion_model" target="_blank">Merton Jump-Diffusion</a>:</strong> Adds occasional discontinuous jumps to the GBM base process, helping represent severe but infrequent market shocks. In Custom Mode this is the current optional jump overlay.
         </div>
 
         <div class="reference">
-            <strong><a href="https://en.wikipedia.org/wiki/GARCH_model" target="_blank">GARCH</a>:</strong> A volatility-clustering model where shocks affect future variance. This is a useful alternative when the market oscillator should capture changing volatility rather than a fixed annualized assumption.
+            <strong><a href="https://en.wikipedia.org/wiki/GARCH_model" target="_blank">GARCH</a>:</strong> A volatility-clustering model where shocks affect future variance. It is not wired into the simulator today, but the oscillator selector is intended to make that kind of future extension straightforward.
         </div>
 
         <div class="reference">

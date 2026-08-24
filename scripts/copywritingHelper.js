@@ -71,21 +71,10 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Get payment percentage text
-     */
-    getPaymentPercentageText() {
-        return `${STANDARD_MODE_DEFAULTS.PAYMENT_PERCENTAGE}%`;
-    },
-
-    /**
      * Calculate spread between growth and effective borrowing rate
      */
     getSpreadText() {
-        const spread = STANDARD_MODE_DEFAULTS.GROWTH_RATE - getEffectiveBorrowingRate(
-            STANDARD_MODE_DEFAULTS.PRIME_RATE,
-            STANDARD_MODE_DEFAULTS.SPREAD_RATE
-        );
-        return `${spread}%`;
+        return `${STANDARD_MODE_DEFAULTS.GROWTH_RATE - getEffectiveBorrowingRate(STANDARD_MODE_DEFAULTS.PRIME_RATE, STANDARD_MODE_DEFAULTS.SPREAD_RATE)}%`;
     },
 
     /**
@@ -154,14 +143,14 @@ const CopywritingHelpers = {
      * Get mode description for Standard Mode
      */
     getModeStandardDescription() {
-        return `<p><strong>Standard Mode:</strong> The simulator starts from a research-backed baseline for the monthly-deposit and target-LTV framework; Custom Mode allows you to adjust more parameters.</p>`;
+        return `<p><strong>Standard Mode:</strong> The simulator starts from a research-backed baseline for the monthly-deposit and target-LTV framework; Custom Mode allows adjustment of additional parameters.</p>`;
     },
 
     /**
      * Get mode description for Custom Mode
      */
     getModeCustomDescription() {
-        return `<p><strong>Custom Mode:</strong> All key inputs are unlocked so you can test different monthly budgets, borrowing costs, expected returns, volatility assumptions, and liquidation thresholds without changing the core logic for deposits and target LTV.</p>`;
+        return `<p><strong>Custom Mode:</strong> All key inputs are unlocked for testing different monthly budgets, borrowing costs, expected returns, volatility assumptions, and liquidation thresholds without changing the core logic for deposits and target LTV.</p>`;
     },
 
     /**
@@ -173,13 +162,6 @@ const CopywritingHelpers = {
             <p>
                 <strong>Leveraged DCA is DCA with two additions: maintaining a target LTV and avoiding voluntary sales.</strong> The same amount is deposited every month. How much gets bought depends on where LTV sits relative to target.
             </p>
-            <p>
-                <strong>Simulator Algorithm:</strong> apply the market return to the securities position. Accrue interest on debt. The monthly budget pays down debt directly. Recalculate LTV. If below target, borrow and buy securities until back at target; if at or above target, buy nothing.
-            </p>
-
-            <div class="info-box">
-                The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). A balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption.
-            </div>
 
             <h4 class="section-title-left">Working Example</h4>
             <p>
@@ -190,6 +172,14 @@ const CopywritingHelpers = {
                 <li><strong>Okay month (flat/slightly down):</strong> LTV drifted near target. $1,000 pays down debt, simulator borrows to buy <strong>~$2,000</strong>.</li>
                 <li><strong>Bad month (portfolio crashed):</strong> LTV is above target. The $1,000 budget reduces debt, modestly improving LTV. No new securities are purchased.</li>
             </ul>
+
+            <div class="box box--info">
+                <h3 class="section-title-left">Portfolio Modeling Assumption</h3>
+                <div class="info-box-content">
+                    The simulator models the portfolio as a single asset with constant drift and volatility. This requires a <strong>fixed allocation in the underlying portfolio</strong> (e.g., 60% equities, 40% bonds). A balanced fund that rebalances internally (e.g., VBAL) satisfies this assumption.
+                </div>
+            </div>
+
 
             <h3 class="section-title-center">How Strategies Compare</h3>
             <table class="comparison-table">
@@ -269,7 +259,7 @@ const CopywritingHelpers = {
     getLifecyclePreambleHtml() {
         return `
             <h1>Lifecycle Investing Simulator</h1>
-            <div class="alert-warning">
+            <div class="box box--normal box--tight">
                 <strong>Placeholder:</strong> This section is a placeholder. Lifecycle investing is not implemented.
             </div>
         `;
@@ -282,35 +272,6 @@ const CopywritingHelpers = {
         return 'Starting LTV (%)';
     },
 
-    /**
-     * Get asset label for Book Value input
-     */
-    getAssetLabelBookValue() {
-        return 'Book Value of Collateral Account ($)';
-    },
-
-    /**
-     * Get asset tooltip for LTV input
-     */
-    getAssetTooltipLTV() {
-        const ltvAbbrev = STANDARD_MODE_DEFAULTS.MAX_LTV;
-        const collateralAmount = (100000 / (ltvAbbrev / 100)).toLocaleString();
-        return `Loan-to-Value ratio: percentage of portfolio that is borrowed. ${ltvAbbrev}% LTV on a $${collateralAmount}K portfolio = $100K loan. Higher LTV increases margin call probability.`;
-    },
-
-    /**
-     * Get asset tooltip for Book Value input
-     */
-    getAssetTooltipBookValue() {
-        return 'The book value of your deposits as reported by your broker. This is typically the original cost basis of deposits, not the current market value. Your broker will provide the difference between book and market value.';
-    },
-
-    /**
-     * Get payment warning text (when monthly budget insufficient)
-     */
-    getPaymentWarningText(monthlyBudget, amortizedPayment, years) {
-        return `Your monthly budget ($${monthlyBudget.toFixed(2)}) is less than the full amortization payment ($${amortizedPayment.toFixed(2)}). This means you cannot fully pay off the loan over ${years} years with your current budget.`;
-    },
 
     /**
      * Get simulation error message
@@ -322,13 +283,12 @@ const CopywritingHelpers = {
     /**
      * Format strategy summary narrative with current values
      */
-    getStrategySummaryNarrative(monthlyBudget, debtPayment, marketInvestment, survivalRate, medianRealWealth, benchmarkMedian, delta) {
+    getStrategySummaryNarrative(targetLTV, survivalRate, medianRealWealth, benchmarkMedian, delta) {
         const deltaPrefix = delta >= 0 ? '+' : '-';
         return {
-            allocation: `You have a monthly budget of <strong>$${monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> for debt payments and investments.`,
-            paymentBreakdown: `With this strategy, you pay <strong>$${debtPayment.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> to the lender and invest the remaining <strong>$${marketInvestment.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> into a low-cost S&P 500 ETF.`,
-            outcomes: `This allocation results in a <strong>${survivalRate.toFixed(1)}%</strong> probability of survival. In the expected case, your Real Wealth (in today's purchasing power) is <strong>$${medianRealWealth.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong>.`,
-            baseline: `Baseline Comparison: If you simply invested your <strong>$${monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> monthly budget into the S&P 500 without borrowing, you would likely end up with <strong>$${benchmarkMedian.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong>.`,
+            strategy: `The selected strategy maintains a target LTV of <strong>${(targetLTV * 100).toFixed(1)}%</strong> while the portfolio evolves through monthly market movements and deposits.`,
+            outcomes: `This allocation results in a <strong>${survivalRate.toFixed(1)}%</strong> probability of survival. In the expected case, real wealth (in today's purchasing power) is <strong>$${medianRealWealth.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong>.`,
+            baseline: `DCA Baseline Comparison: The equivalent no-leverage strategy would likely produce <strong>$${benchmarkMedian.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> in real wealth.`,
             leverageImpact: `Leverage Impact: ${deltaPrefix}$${Math.abs(delta).toLocaleString(undefined, {maximumFractionDigits: 0})}`
         };
     },
@@ -390,17 +350,17 @@ const CopywritingHelpers = {
         let fixes = [];
         
         if (classification.isDangerous) {
-            fixes.push("<strong>Reduce your Loan Amount.</strong> Your borrowed capital is too large relative to your safety buffer. Avoid borrowing more than a third of your portfolio's value.");
-            fixes.push("<strong>Add More Collateral.</strong> Deposit additional cash into your account without borrowing more. This strengthens your cushion against margin calls.");
-            fixes.push("<strong>Increase Monthly Payment.</strong> Pay down the loan faster before a crash occurs. The longer you stay leveraged, the higher your ruin risk.");
+            fixes.push("<strong>Reduce the Loan Amount.</strong> Borrowed capital is too large relative to the safety buffer. Borrowing less than a third of portfolio value provides a more conservative position.");
+            fixes.push("<strong>Add More Collateral.</strong> Additional cash deposits without further borrowing strengthen the cushion against margin calls.");
+            fixes.push("<strong>Increase the Monthly Deposit.</strong> Larger deposits reduce the target-LTV exposure more quickly before a crash occurs. Longer leverage increases ruin risk.");
         } else if (classification.isPointless) {
-            fixes.push("<strong>Check Your Interest Rate.</strong> If you're paying more than 7-8% annual interest, leverage rarely works mathematically. Consider switching to a lower-cost loan or margin product.");
-            fixes.push("<strong>Increase Your Monthly Budget.</strong> Pay down the principal faster. Leverage works best when your debt is a shrinking percentage of your assets.");
-            fixes.push("<strong>Extend Your Time Horizon.</strong> If your simulation is under 10 years, short-term volatility is drowning out long-term gains. Leverage needs time to compound.");
+            fixes.push("<strong>Check the Interest Rate.</strong> Annual interest above 7-8% rarely supports leverage mathematically. A lower-cost loan or margin product may be more suitable.");
+            fixes.push("<strong>Increase the Monthly Deposit.</strong> Larger deposits make debt a shrinking percentage of portfolio value.");
+            fixes.push("<strong>Extend the Time Horizon.</strong> With a horizon under 10 years, short-term volatility can overwhelm long-term gains. Leverage needs time to compound.");
         } else if (classification.isMarginal) {
-            fixes.push("<strong>Lower Your LTV by 5%.</strong> Often, a small reduction in borrowed capital significantly increases your spread by reducing interest costs and ruin risk together.");
-            fixes.push("<strong>Invest Your Monthly Surplus.</strong> Ensure the money you don't use for debt payments goes into growth assets (stocks/ETFs), not cash. If you're holding cash, you're wasting the leverage benefit.");
-            fixes.push("<strong>Test Interest Rate Risk.</strong> Try to increase your interest rate by 1%. If this strategy becomes \"Pointless,\" it's too fragile. You need more cushion.");
+            fixes.push("<strong>Lower the LTV by 5%.</strong> A small reduction in borrowed capital can increase the spread by reducing interest costs and ruin risk together.");
+            fixes.push("<strong>Maintain the Monthly Deposit.</strong> Consistent deposits support the target-LTV mechanism and keep the strategy invested through market cycles.");
+            fixes.push("<strong>Test Interest Rate Risk.</strong> A 1% increase in the interest rate provides a useful fragility test. A shift to \"Pointless\" indicates insufficient cushion.");
         }
         
         return fixes.length > 0 ? fixes : null;
@@ -439,7 +399,7 @@ const CopywritingHelpers = {
      * Get success criteria table headers
      */
     getSuccessCriteriaHeaders() {
-        return { outcome: 'Outcome', goal: 'Target Goal', current: 'Your Current', status: 'Status' };
+        return { outcome: 'Outcome', goal: 'Target Goal', current: 'Current Result', status: 'Status' };
     },
 
     /**
@@ -452,6 +412,18 @@ const CopywritingHelpers = {
             profit: 'Profit'
         };
         return labels[type] || '';
+    },
+
+    /**
+     * Get the canonical outcome definition
+     */
+    getOutcomeDescription(type) {
+        const descriptions = {
+            ruin: 'Ended with real net worth below total real deposits (lost money).',
+            sucker: 'Ended strictly above total real deposits but underperformed DCA.',
+            profit: 'Ended strictly above total real deposits and outperformed the DCA baseline in real terms.'
+        };
+        return descriptions[type] || '';
     },
 
     /**
@@ -474,10 +446,10 @@ const CopywritingHelpers = {
     },
 
     /**
-     * Get "How to Fix Your Strategy" header
+     * Get strategy improvement header
      */
     getFixStrategyHeaderText() {
-        return 'How to Fix Your Strategy';
+        return 'Ways to Improve the Strategy';
     }
 };
 

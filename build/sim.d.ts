@@ -11,6 +11,16 @@ export declare function getInputPtr(): number;
  */
 export declare function getOutputPtr(): number;
 /**
+ * assembly/index/getDepositsPtr
+ * @returns `usize`
+ */
+export declare function getDepositsPtr(): number;
+/**
+ * assembly/index/getLtvSchedulePtr
+ * @returns `usize`
+ */
+export declare function getLtvSchedulePtr(): number;
+/**
  * assembly/index/runSimulation
  * @param providerId `i32`
  * @returns `i32`

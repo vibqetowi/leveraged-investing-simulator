@@ -32,6 +32,14 @@ async function instantiate(module, imports = {}) {
       // assembly/index/getOutputPtr() => usize
       return exports.getOutputPtr() >>> 0;
     },
+    getDepositsPtr() {
+      // assembly/index/getDepositsPtr() => usize
+      return exports.getDepositsPtr() >>> 0;
+    },
+    getLtvSchedulePtr() {
+      // assembly/index/getLtvSchedulePtr() => usize
+      return exports.getLtvSchedulePtr() >>> 0;
+    },
   }, exports);
   function __liftString(pointer) {
     if (!pointer) return null;
@@ -50,6 +58,8 @@ export const {
   memory,
   getInputPtr,
   getOutputPtr,
+  getDepositsPtr,
+  getLtvSchedulePtr,
   runSimulation,
 } = await (async url => instantiate(
   await (async () => {

@@ -1,8 +1,11 @@
 import { tensorIndex, statsStateOffset } from './contracts';
 
 // Stats consumes the raw real-state tensor emitted by sim.
-// Input: [months, scenarios, equity, monthlyBudget, inflation, benchmarkMedian,
+// Input: [months, scenarios, equity, totalRealDeposits, inflation, benchmarkMedian,
 //         securities[S*(M+1)], debt[S*(M+1)], liquidation[S*(M+1)]]
+// totalRealDeposits is computed by the JS orchestrator from its own deposits schedule
+// (see documentation/DataFlow.md "Schedule Optimization") rather than reconstructed here,
+// since the nominal monthly deposit is no longer a single constant.
 // Output: [status, months, totalRealDeposits, survivalRate, median, p90,
 //          expected, survivorCount, marginCallCount,
 //          ruinCount, suckerCount, profitCount, standardDeviation,
@@ -16,8 +19,8 @@ export function getOutputPtr(): usize { return changetype<usize>(outputBuffer); 
 export function runStats(): i32 {
     const months = i32(inputBuffer[0]);
     const scenarios = i32(inputBuffer[1]);
-    const initialEquity = inputBuffer[2];
-    const monthlyBudget = inputBuffer[3];
+    // inputBuffer[2] (equity) is informational only; totalRealDeposits already includes it.
+    const totalRealDeposits = inputBuffer[3];
     const inflation = inputBuffer[4];
     const benchmarkMedian = inputBuffer[5];
     const points = scenarios * (months + 1);
@@ -25,10 +28,6 @@ export function runStats(): i32 {
     const debtOffset = statsStateOffset(1, scenarios, months);
     const liquidationOffset = statsStateOffset(2, scenarios, months);
     const finalWealth = new StaticArray<f64>(scenarios);
-    let totalRealDeposits = initialEquity;
-    for (let month = 1; month <= months; month++) {
-        totalRealDeposits += monthlyBudget / Math.pow(1.0 + inflation, f64(month) / 12.0);
-    }
 
     let survivors = 0;
     let marginCalls = 0;

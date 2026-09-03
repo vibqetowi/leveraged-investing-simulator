@@ -5,20 +5,26 @@
 
 // Standard Mode Default Values (Research-backed assumptions)
 const STANDARD_MODE_DEFAULTS = {
+    MODEL_ID: 1,               // 0 = GBM, 1 = Merton jump-diffusion
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
-    INTEREST_RATE: 7.0,       // Prime + 1% spread (%)
-    GROWTH_RATE: 8.0,         // Historical S&P 500 return (%)
-    VOLATILITY: 15.0,         // Standard deviation of annual returns (%)
+    PRIME_RATE: 6.0,          // Benchmark prime rate (%)
+    SPREAD_RATE: 1.0,         // Lender spread above prime (%)
+    INTEREST_RATE: 7.0,       // Effective borrowing rate = prime + spread (%)
+    GROWTH_RATE: 10,         // Historical S&P 500 return (%)
+    VOLATILITY: 16.5,         // Standard deviation of annual returns (%)
     MARGIN_CALL_LTV: 60.0,    // Conservative liquidation threshold (%)
-    PAYMENT_PERCENTAGE: 50.0,  // Default to 50% of amortized payment
-    MAX_LTV: 35.0             // Maximum LTV allowed in Standard Mode (%)
+    MAX_LTV: 50             // Maximum LTV allowed in Standard Mode (%)
 };
+
+function getEffectiveBorrowingRate(primeRate = STANDARD_MODE_DEFAULTS.PRIME_RATE, spreadRate = STANDARD_MODE_DEFAULTS.SPREAD_RATE) {
+    return primeRate + spreadRate;
+}
 
 // Default Input Values
 const DEFAULT_INPUTS = {
     LOAN_PERIOD: 30,           // Default simulation period (years)
-    MONTHLY_BUDGET: 200,       // Default monthly budget ($)
-    COLLATERAL_VALUE: 30000,   // Default collateral value ($)
+    MONTHLY_BUDGET: 500,       // Default monthly budget ($)
+    STARTING_DEPOSIT: 10000,   // Default collateral value ($)
     STARTING_LTV: 20.0         // Default starting LTV (%)
 };
 
@@ -26,9 +32,9 @@ const DEFAULT_INPUTS = {
 const UI_CONSTANTS = {
     BASE_CASE_SIMULATIONS: 20000,        // Non leverage case simulation count
     DEFAULT_RISK_PROFILES: {
-        aggressive: 95,                   // 95% survival rate target
-        median: 98,                       // 98% survival rate target
-        conservative: 99.5                  // 99.5% survival rate target
+        aggressive: 99.5,                   // 99% survival rate target
+        median: 99.8,                       // 99.8% survival rate target
+        conservative: 99.99                  // 99.99% survival rate target
     },
     SIMULATION_COUNT: 10000,              // Number of Monte Carlo simulations per bin
     NUM_STRATEGIES: 21,                   // Number of payment strategies to test
@@ -49,24 +55,27 @@ const UI_CONSTANTS = {
 };
 
 /**
- * Calculate required WASM output buffer size
- * Formula: 2 header + (8 + BASE_CASE_SIMS) + (NUM_STRATS - 1) * (8 + SIM_COUNT)
+ * Calculate required WASM tensor buffer size for one worker.
+ * Formula: raw header + state variables * scenarios * (months + 1)
  * 
  * WARNING: If you change simulation counts, the buffer must be large enough!
  */
 function calculateRequiredBufferSize() {
-    const headerSize = 2;
-    const scenarioHeaderSize = 8;
-    const benchmarkSize = scenarioHeaderSize + UI_CONSTANTS.BASE_CASE_SIMULATIONS;
-    const leveragedSize = (UI_CONSTANTS.NUM_STRATEGIES - 1) * 
-                          (scenarioHeaderSize + UI_CONSTANTS.SIMULATION_COUNT);
-    const totalRequired = headerSize + benchmarkSize + leveragedSize;
+    const rawHeaderSize = 9;
+    const stateCount = 3;
+    const months = DEFAULT_INPUTS.LOAN_PERIOD * 12;
+    const maxScenarios = Math.max(
+        UI_CONSTANTS.BASE_CASE_SIMULATIONS,
+        UI_CONSTANTS.SIMULATION_COUNT
+    );
+    const totalRequired = rawHeaderSize + stateCount * maxScenarios * (months + 1);
+    const allocated = 24000000;
     
     return {
         required: totalRequired,
-        allocated: 800000,  // Must match assembly/index.ts outputBuffer size
-        isValid: totalRequired <= 800000,
-        utilizationPercent: (totalRequired / 800000 * 100).toFixed(1)
+        allocated,
+        isValid: totalRequired <= allocated,
+        utilizationPercent: (totalRequired / allocated * 100).toFixed(1)
     };
 }
 
@@ -78,8 +87,7 @@ if (typeof window !== 'undefined') {
             `⚠️ BUFFER OVERFLOW WARNING!\n` +
             `Required: ${bufferInfo.required.toLocaleString()} f64 values\n` +
             `Allocated: ${bufferInfo.allocated.toLocaleString()} f64 values\n` +
-            `You must reduce SIMULATION_COUNT or BASE_CASE_SIMULATIONS in config.js\n` +
-            `or increase outputBuffer size in assembly/index.ts and rebuild (npm run asbuild)`
+            `Reduce simulation counts or increase the matching AssemblyScript buffers and rebuild.`
         );
     } else {
         console.log(
@@ -90,6 +98,28 @@ if (typeof window !== 'undefined') {
 }
 
 // Export for use in other modules
+if (typeof window !== 'undefined') {
+    window.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
+    window.DEFAULT_INPUTS = DEFAULT_INPUTS;
+    window.UI_CONSTANTS = UI_CONSTANTS;
+    window.config = {
+        STANDARD_MODE_DEFAULTS,
+        DEFAULT_INPUTS,
+        UI_CONSTANTS
+    };
+}
+
+if (typeof globalThis !== 'undefined') {
+    globalThis.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
+    globalThis.DEFAULT_INPUTS = DEFAULT_INPUTS;
+    globalThis.UI_CONSTANTS = UI_CONSTANTS;
+    globalThis.config = globalThis.config || {
+        STANDARD_MODE_DEFAULTS,
+        DEFAULT_INPUTS,
+        UI_CONSTANTS
+    };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { 
         STANDARD_MODE_DEFAULTS, 

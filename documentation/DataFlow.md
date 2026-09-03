@@ -93,14 +93,14 @@ The sim calls `call_indirect(func_table_idx, state_ptr, config_ptr, deposits_ptr
 
 ## Strategy Mapping
 
-| Oscillator | Deposit | Target LTV | Function Name | State Var Changes |
-|------------|---------|------------|---------------|-------------------|
-| GBM | Constant | Constant | `transition_gbm_const` | drift/vol unchanged |
-| GBM | Inflation | Constant | `transition_gbm_inflation` | drift/vol unchanged |
-| Merton | Constant | Constant | `transition_merton_const` | drift/vol unchanged |
-| GARCH | Constant | Constant | `transition_garch_const` | vol updated, prev_return updated |
-| MS-GARCH | Constant | Lifecycle | `transition_msgarch_lifecycle` | drift/vol/regime updated |
-| MS-GARCH | Inflation | Lifecycle | `transition_msgarch_lifecycle_inf` | drift/vol/regime updated |
+| Oscillator | Deposit | Target LTV | Function Name | State Var Changes | Status |
+|------------|---------|------------|---------------|-------------------|--------|
+| GBM | Constant | Constant | `transition_gbm_const` | drift/vol unchanged | Implemented |
+| Merton | Constant | Constant | `transition_merton_const` | drift/vol unchanged | Implemented |
+| GBM | Inflation | Constant | `transition_gbm_inflation` | drift/vol unchanged | Not yet implemented |
+| GARCH | Constant | Constant | `transition_garch_const` | vol updated, prev_return updated | Not yet implemented |
+| MS-GARCH | Constant | Lifecycle | `transition_msgarch_lifecycle` | drift/vol/regime updated | Not yet implemented |
+| MS-GARCH | Inflation | Lifecycle | `transition_msgarch_lifecycle_inf` | drift/vol/regime updated | Not yet implemented |
 
 ## Module Contracts
 

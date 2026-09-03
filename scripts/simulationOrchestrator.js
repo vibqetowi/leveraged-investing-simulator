@@ -1,9 +1,7 @@
 /**
- * this creates one worker per required strategy and configures them with the proper inputs
-
-/**
- * Extract UI inputs in format expected by both old and new simulation engines
+ * Creates one worker per required strategy and configures them with the proper inputs
  */
+
 /**
  * Check if WebAssembly is supported
  */
@@ -61,16 +59,28 @@ async function runSimulationWithAdapter(uiInputs) {
     try {
         if (!isWasmAvailable()) throw new Error("WebAssembly is required");
         
+        // Pre-compute deterministic schedules once (documentation/DataFlow.md "Schedule Optimization").
+        // Deposits grow nominally with inflation so the real monthly contribution stays constant.
+        const months = Math.round(uiInputs.years * 12);
+        const deposits = new Float64Array(months + 1);
+        for (let t = 0; t <= months; t++) {
+            deposits[t] = uiInputs.monthlyBudget * Math.pow(1 + uiInputs.inflation, t / 12);
+        }
+        const totalRealDeposits = uiInputs.initialEquity + uiInputs.monthlyBudget * months;
+
         // Create worker inputs for each strategy
         const strategyInputs = [];
         for (let i = 0; i < strategyCount; i++) {
             const isBenchmark = i === 0;
             const targetLTV = isBenchmark ? 0 : uiInputs.maxLTV * (i / maxStrategyIndex);
+            const ltvSchedule = new Float64Array(months + 1).fill(targetLTV);
             strategyInputs.push({
                 initialEquity: uiInputs.initialEquity,
-                targetLTV,
-                monthlyBudget: uiInputs.monthlyBudget,
-                monthlyRate: uiInputs.interestRate / 12.0,
+                deposits,
+                ltvSchedule,
+                totalRealDeposits,
+                primeRate: uiInputs.primeRate,
+                spreadRate: uiInputs.spreadRate,
                 years: uiInputs.years,
                 volatility: uiInputs.volatility,
                 growth: uiInputs.growth,
@@ -124,7 +134,6 @@ function aggregateWorkerResults(workerResults, uiInputs, totalTime) {
             loanAmount: uiInputs.loanAmount,
             initialEquity: uiInputs.initialEquity,
             months: uiInputs.years * 12,
-            amortizedPayment: uiInputs.amortizedPayment,
             monthlyBudget: uiInputs.monthlyBudget,
             interestRate: uiInputs.interestRate,
             inflationRate: uiInputs.inflation,
@@ -144,7 +153,6 @@ function aggregateWorkerResults(workerResults, uiInputs, totalTime) {
         // Unmarshal results
         const strategyData = unmarshalStrategyResults(statsBuffer, result.months, result.scenarios);
         
-        // Add payment info
         const maxStrategyIndex = UI_CONSTANTS.NUM_STRATEGIES - 1;
         strategyData.targetLTV = isBenchmark ? 0 : uiInputs.maxLTV * (strategyIndex / maxStrategyIndex);
         strategyData.initialLoan = uiInputs.initialEquity * strategyData.targetLTV / (1 - strategyData.targetLTV);
@@ -161,7 +169,6 @@ function aggregateWorkerResults(workerResults, uiInputs, totalTime) {
     if (aggregated.benchmark && aggregated.benchmark.expectedWealth > 0) {
         for (let i = 0; i < aggregated.strategies.length; i++) {
             const strategy = aggregated.strategies[i];
-            strategy.paymentPercent = strategy.targetLTV * 100.0;
             strategy.benchmarkWealthArray = aggregated.benchmark.finalWealthArray;
             strategy.benchmarkMedian = aggregated.benchmark.medianWealth;
             strategy.benchmarkExpected = aggregated.benchmark.expectedWealth;

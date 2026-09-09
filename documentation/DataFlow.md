@@ -38,7 +38,7 @@ index.html (Custom Mode)          orchestrator.js                  sim.wasm     
     │                        |    │                                     |                              |
     │                        |    │   worker instantiates sim ──────────▶ runSimulation(providerId)      |
     │                        |    │                                     ├─ getSimulationMethod(providerId) ▶ PROVIDERS[providerId]
-    │                        |    │                                     │   invokes composite function ──▶ transition_gbm_merton_const
+    │                        |    │                                     │   invokes composite function ──▶ sim_gbm_merton_const_const
     │                        |    │                                     ◀──────── return raw state paths  |
 ```
 
@@ -81,24 +81,25 @@ for (let t = 0; t < nMonths; t++) {
 
 ## Monthly Step Order
 
-Each month in the sim loop, the math function executes:
+Each precompiled composite simulator binds one oscillator and one jump mechanism to the shared template. For example, `sim_gbm_merton_const_const` binds `runOscillator_gbm`, `runJump_merton`, constant deposits, and constant LTV. The template does not know the concrete mechanism names. Each month it executes:
 
-1. **Stochastic Transition:** Draw returns using current `drift`, `vol`, `regime`. Apply to `securities`.
-2. **Apply Interest:** `debt *= (1 + (prime_rate + spread) / 12)`
-3. **Margin Check:** If `securities / debt` ratio breaches margin threshold, force liquidation or trigger margin call.
-4. **Deposit:** Read `deposits[month]`, subtract from `debt`.
-5. **Buy / Restore LTV:** Read `ltv_schedule[month]`, rebalance `securities` and `debt` to hit target LTV.
+1. **Oscillator:** Call the bound `runOscillator_*` mechanism and apply its multiplicative factor to `securities`.
+2. **Jump Overlay:** Call the bound `runJump_*` mechanism and apply its multiplicative factor to `securities`.
+3. **Apply Interest:** `debt *= (1 + (prime_rate + spread) / 12)`
+4. **Margin Check:** If `securities / debt` ratio breaches margin threshold, force liquidation or trigger margin call.
+5. **Deposit:** Read `deposits[month]`, subtract from `debt`.
+6. **Buy / Restore LTV:** Read `ltv_schedule[month]`, rebalance `securities` and `debt` to hit target LTV.
 
 The sim calls `runSimulation(providerId)`, which dispatches to `PROVIDERS[providerId]` inside math.ts and invokes that composite function directly for `(state_ptr, config_ptr, deposits_ptr, ltv_schedule_ptr, month)` each step. The composite function handles all five steps internally, including any tail/shock overlay (e.g. Merton jumps). The sim records `securities` and `debt` after each step into the output arrays.
 
 ## Strategy Mapping
 
-Merton is a jump-diffusion overlay on an oscillator, not a standalone oscillator, so combos are named `transition_{oscillator}_{tailModel}_{depositModel}`. The `transition_merton_const` row from earlier docs is reframed below as GBM + Merton, matching what the code actually computes.
+Merton is a jump-diffusion overlay on an oscillator, not a standalone oscillator, so combos are named `sim_{oscillator}_{tailModel}_{depositModel}_{targetLTV}`.
 
 | Oscillator | Tail Model | Deposit | Target LTV | Function Name | Provider ID | State Var Changes | Status |
 |------------|-----------|---------|------------|---------------|-------------|-------------------|--------|
-| GBM | None | Constant | Constant | `transition_gbm_none_const` | 0 | drift/vol unchanged | Implemented |
-| GBM | Merton | Constant | Constant | `transition_gbm_merton_const` | 1 | drift/vol unchanged | Implemented |
+| GBM | None | Constant | Constant | `sim_gbm_none_const_const` | 0 | drift/vol unchanged | Implemented |
+| GBM | Merton | Constant | Constant | `sim_gbm_merton_const_const` | 1 | drift/vol unchanged | Implemented |
 
 ## Module Contracts
 
@@ -240,7 +241,7 @@ struct Config {
   f64 kappa, theta, sigma_v, rho;  // Heston params (future)
   f64 jump_lambda, jump_mu, jump_sigma; // Merton params
   f64 spread;                      // prime + spread; spread is config, prime is state
-  u32 model_id;                    // providerId: flat enum over (oscillator, tailModel, deposit, targetLTV) combos, see Strategy Mapping
+  u32 provider_id;                 // ID of a complete precompiled simulator, see Strategy Mapping
 };
 ```
 

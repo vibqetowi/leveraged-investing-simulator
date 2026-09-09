@@ -9,9 +9,9 @@ function isWasmAvailable() {
     return typeof WebAssembly !== 'undefined';
 }
 
-function runStrategyWorker(strategyIndex, inputs) {
+function runStrategyWorker(strategyIndex, inputs, WorkerConstructor = Worker) {
     return new Promise((resolve, reject) => {
-        const worker = new Worker('scripts/simulationWorker.js', {
+        const worker = new WorkerConstructor('scripts/simulationWorker.js', {
             name: `strategy-${strategyIndex}`
         });
         const timeout = setTimeout(() => {
@@ -49,9 +49,12 @@ function runStrategyWorker(strategyIndex, inputs) {
  * Run simulation using 21 separate Worker instances
  * Each worker processes one strategy independently
  */
-async function runSimulationWithAdapter(uiInputs) {
-    const strategyCount = UI_CONSTANTS.NUM_STRATEGIES;
+async function runSimulationWithAdapter(uiInputs, options = {}) {
+    const strategyCount = options.strategyCount ?? UI_CONSTANTS.NUM_STRATEGIES;
     const maxStrategyIndex = strategyCount - 1;
+    const WorkerConstructor = options.WorkerConstructor ?? Worker;
+    const simulationCount = options.simulationCountOverride ?? uiInputs.simulationCount;
+    const baselineSimulationCount = options.baselineSimulationCountOverride ?? uiInputs.baselineSimulationCount;
     console.log(`[Integration] Starting simulation with ${strategyCount} workers...`);
     
     console.log('[Integration] Inputs collected:', uiInputs);
@@ -86,8 +89,8 @@ async function runSimulationWithAdapter(uiInputs) {
                 growth: uiInputs.growth,
                 inflation: uiInputs.inflation,
                 marginCallLTV: uiInputs.marginCallLTV,
-                simulationCount: isBenchmark ? uiInputs.baselineSimulationCount : uiInputs.simulationCount,
-                providerId: uiInputs.modelId,
+                simulationCount: isBenchmark ? baselineSimulationCount : simulationCount,
+                providerId: uiInputs.providerId,
                 stateCount: 3
             });
         }
@@ -95,14 +98,14 @@ async function runSimulationWithAdapter(uiInputs) {
         console.log(`[Integration] Running benchmark, then ${strategyCount - 1} strategies...`);
         const startTime = performance.now();
         try {
-            const benchmarkResult = await runStrategyWorker(0, strategyInputs[0]);
+            const benchmarkResult = await runStrategyWorker(0, strategyInputs[0], WorkerConstructor);
             const benchmarkStats = benchmarkResult.statsResults;
             const benchmarkMedian = benchmarkStats[4];
             for (let i = 1; i < strategyCount; i++) {
                 strategyInputs[i].benchmarkMedian = benchmarkMedian;
             }
             const strategyResults = await Promise.all(
-                strategyInputs.slice(1).map((inputs, offset) => runStrategyWorker(offset + 1, inputs))
+                strategyInputs.slice(1).map((inputs, offset) => runStrategyWorker(offset + 1, inputs, WorkerConstructor))
             );
             const results = [benchmarkResult, ...strategyResults];
             const endTime = performance.now();
@@ -230,4 +233,8 @@ function unmarshalStrategyResults(statsBuffer, months, scenarios) {
 if (typeof window !== 'undefined') {
     window.isWasmAvailable = isWasmAvailable;
     window.runSimulationWithAdapter = runSimulationWithAdapter;
+}
+
+if (typeof globalThis !== 'undefined') {
+    globalThis.runSimulationWithAdapter = runSimulationWithAdapter;
 }

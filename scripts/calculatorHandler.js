@@ -235,6 +235,23 @@ async function runSimulation() {
     }
 }
 
+function resolveProviderId() {
+    const oscillator = document.getElementById('oscillatorSelect')?.value;
+    const tailModel = document.getElementById('tailModelSelect')?.value;
+    const key = `${oscillator}+${tailModel}`;
+
+    if (!(key in PROVIDER_ID_MAP)) {
+        throw new Error(`Unsupported simulation combination: ${key}`);
+    }
+
+    const providerId = PROVIDER_ID_MAP[key];
+    if (providerId !== 0 && providerId !== 1) {
+        throw new Error(`Simulation combination is not implemented: ${key}`);
+    }
+
+    return providerId;
+}
+
 function getSimulationInputs() {
     const initialEquity = parseFloat(document.getElementById('assetValue').value);
     const loanAmount = parseFloat(document.getElementById('loanAmount').value);
@@ -265,7 +282,7 @@ function getSimulationInputs() {
         simulationCount: UI_CONSTANTS.SIMULATION_COUNT,
         baselineSimulationCount: UI_CONSTANTS.BASE_CASE_SIMULATIONS,
         numStrategies: UI_CONSTANTS.NUM_STRATEGIES - 1,
-        modelId: STANDARD_MODE_DEFAULTS.MODEL_ID,
+        providerId: currentMode === 'custom' ? resolveProviderId() : STANDARD_MODE_DEFAULTS.SIMULATOR.id,
         months
     };
 }
@@ -829,7 +846,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initialLoanAmount = (DEFAULT_INPUTS.STARTING_DEPOSIT * DEFAULT_INPUTS.STARTING_LTV / 100).toFixed(0);
     document.getElementById('loanAmount').value = initialLoanAmount;
 
-    // Aspirational: pre-fill GARCH/Heston/Merton param inputs from config defaults; locked in standard mode via setMode.
+    // Pre-fill future mechanism parameter inputs; they remain locked until their simulators are compiled.
     document.getElementById('garchOmega').value = GARCH_PARAMS_DEFAULTS.OMEGA;
     document.getElementById('garchAlpha').value = GARCH_PARAMS_DEFAULTS.ALPHA;
     document.getElementById('garchBeta').value = GARCH_PARAMS_DEFAULTS.BETA;

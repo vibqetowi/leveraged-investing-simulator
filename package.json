@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Leveraged Investing Strategy Analyzer with WebAssembly acceleration",
   "scripts": {
+    "dev": "vite",
     "asbuild:untouched": "asc assembly/index.ts --target debug",
     "asbuild:optimized": "asc assembly/index.ts --target release",
     "asbuild": "npm run asbuild:optimized && npm run asbuild:math && npm run asbuild:stats",
@@ -14,6 +15,7 @@
   "devDependencies": {
     "assemblyscript": "^0.27.37",
     "jsdom": "^25.0.1",
+    "vite": "^5.4.21",
     "vitest": "^2.1.9"
   },
   "type": "module"

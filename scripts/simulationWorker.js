@@ -101,7 +101,10 @@ self.onmessage = async function (event) {
     try {
         await initWasm();
         marshalInputs(inputs);
-        const rawSize = simInstance.exports.runSimulation(inputs.providerId || 0);
+        if (!Number.isInteger(inputs.providerId) || inputs.providerId < 0) {
+            throw new Error('Invalid simulation provider ID');
+        }
+        const rawSize = simInstance.exports.runSimulation(inputs.providerId);
         const rawResults = copyOutput(simInstance, simMemory, rawSize);
         const tensor = validateRawResults(rawResults);
         const statsResults = runStats(rawResults, inputs.benchmarkMedian, inputs.totalRealDeposits);

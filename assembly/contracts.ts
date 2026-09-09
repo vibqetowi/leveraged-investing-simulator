@@ -21,6 +21,10 @@ export const STATE_SECURITIES: i32 = 0;
 export const STATE_DEBT: i32 = 1;
 export const STATE_LIQUIDATION: i32 = 2;
 
+// Oscillators and jumps return multiplicative factors. Stateful mechanisms may
+// update internal model state before returning their factor. Account mechanics
+// remain owned by the shared simulator template.
+
 export function pointCount(scenarioCount: i32, months: i32): i32 {
     return scenarioCount * (months + 1);
 }

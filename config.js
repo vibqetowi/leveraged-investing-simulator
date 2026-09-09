@@ -3,17 +3,16 @@
  * Contains all assumption constants and UI defaults for testing lump sum vs DCA strategies
  */
 
-// Composite provider IDs: flat enum over (oscillator, tailModel, deposit, targetLTV) combos.
-// See documentation/DataFlow.md "Strategy Mapping" - only gbm+none and gbm+merton exist in math.ts today.
+// IDs for complete precompiled simulator compositions.
+const SIMULATOR_IDS = {
+    GBM_NONE_CONST_CONST: 0,
+    GBM_MERTON_CONST_CONST: 1
+};
+
+// Custom Mode resolves its two visible mechanism selectors to one compiled simulator.
 const PROVIDER_ID_MAP = {
-    'gbm+none': 0,
-    'gbm+merton': 1,
-    'gbm+none+inflation': 2,        // aspirational, not yet implemented
-    'gbm+merton+inflation': 3,      // aspirational, not yet implemented
-    'garch+none': 4,                // aspirational, not yet implemented
-    'garch+merton': 5,              // aspirational, not yet implemented
-    'msgarch+none+lifecycle': 6,    // aspirational, not yet implemented
-    'msgarch+merton+lifecycle+inflation': 7 // aspirational, not yet implemented
+    'gbm+none': SIMULATOR_IDS.GBM_NONE_CONST_CONST,
+    'gbm+merton': SIMULATOR_IDS.GBM_MERTON_CONST_CONST
 };
 
 // UI-facing option lists for the Custom Mode oscillator/tail model selectors
@@ -30,7 +29,15 @@ const TAIL_MODELS = {
 
 // Standard Mode Default Values (Research-backed assumptions)
 const STANDARD_MODE_DEFAULTS = {
-    MODEL_ID: PROVIDER_ID_MAP['gbm+merton'], // providerId, see PROVIDER_ID_MAP above
+    SIMULATOR: {
+        id: SIMULATOR_IDS.GBM_MERTON_CONST_CONST,
+        name: 'sim_gbm_merton_const_const',
+        oscillator: 'gbm',
+        tailModel: 'merton',
+        depositModel: 'constant',
+        ltvModel: 'constant'
+    },
+    PERIOD_YEARS: 30,
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
     PRIME_RATE: 6.0,          // Benchmark prime rate (%)
     SPREAD_RATE: 1.0,         // Lender spread above prime (%)
@@ -68,7 +75,7 @@ const MERTON_PARAMS_DEFAULTS = {
 
 // Default Input Values
 const DEFAULT_INPUTS = {
-    LOAN_PERIOD: 30,           // Default simulation period (years)
+    LOAN_PERIOD: STANDARD_MODE_DEFAULTS.PERIOD_YEARS,
     MONTHLY_BUDGET: 500,       // Default monthly budget ($)
     STARTING_DEPOSIT: 10000,   // Default collateral value ($)
     STARTING_LTV: 20.0         // Default starting LTV (%)

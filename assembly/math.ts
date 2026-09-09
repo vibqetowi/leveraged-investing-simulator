@@ -48,7 +48,19 @@ export function simulateMertonJumpFactor(): f64 {
     return 1.0;
 }
 
-export type SimulationMethod = (
+type OscillatorMethod = (
+    state: StaticArray<f64>,
+    config: StaticArray<f64>,
+    month: i32
+) => f64;
+
+type JumpMethod = (
+    state: StaticArray<f64>,
+    config: StaticArray<f64>,
+    month: i32
+) => f64;
+
+type SimulationMethod = (
     state: StaticArray<f64>,
     config: StaticArray<f64>,
     monthlyDeposit: f64,
@@ -56,11 +68,37 @@ export type SimulationMethod = (
     month: i32
 ) => void;
 
-// Strategy Mapping table (DataFlow.md): index 0 = GBM/constant, index 1 = Merton/constant.
-const PROVIDERS: SimulationMethod[] = [transition_gbm_const, transition_merton_const];
+export function runOscillator_gbm(
+    state: StaticArray<f64>,
+    config: StaticArray<f64>,
+    month: i32
+): f64 {
+    return simulateGeometricBrownianMotionMonthlyGrowthFactor(config[CONFIG_GROWTH], config[CONFIG_VOLATILITY]);
+}
+
+export function runJump_none(
+    state: StaticArray<f64>,
+    config: StaticArray<f64>,
+    month: i32
+): f64 {
+    return 1.0;
+}
+
+export function runJump_merton(
+    state: StaticArray<f64>,
+    config: StaticArray<f64>,
+    month: i32
+): f64 {
+    return simulateMertonJumpFactor();
+}
+
+const PROVIDERS: SimulationMethod[] = [sim_gbm_none_const_const, sim_gbm_merton_const_const];
 
 export function getSimulationMethod(providerId: i32): SimulationMethod {
-    return providerId >= 0 && providerId < PROVIDERS.length ? PROVIDERS[providerId] : PROVIDERS[0];
+    if (providerId < 0 || providerId >= PROVIDERS.length) {
+        throw new Error('Invalid simulation provider ID');
+    }
+    return PROVIDERS[providerId];
 }
 
 export function initializeLeveragedDCAState(
@@ -76,41 +114,58 @@ export function initializeLeveragedDCAState(
     state[STATE_LIQUIDATION] = 0.0;
 }
 
-export function transition_gbm_const(
+export function sim_gbm_none_const_const(
     state: StaticArray<f64>,
     config: StaticArray<f64>,
     monthlyDeposit: f64,
     targetLTV: f64,
     month: i32
 ): void {
-    transitionLeveragedDCAStateWithJumps(state, config, monthlyDeposit, targetLTV, month, false);
+    runGenericSimulationTemplate(
+        state,
+        config,
+        monthlyDeposit,
+        targetLTV,
+        month,
+        runOscillator_gbm,
+        runJump_none
+    );
 }
 
-export function transition_merton_const(
+export function sim_gbm_merton_const_const(
     state: StaticArray<f64>,
     config: StaticArray<f64>,
     monthlyDeposit: f64,
     targetLTV: f64,
     month: i32
 ): void {
-    transitionLeveragedDCAStateWithJumps(state, config, monthlyDeposit, targetLTV, month, true);
+    runGenericSimulationTemplate(
+        state,
+        config,
+        monthlyDeposit,
+        targetLTV,
+        month,
+        runOscillator_gbm,
+        runJump_merton
+    );
 }
 
-function transitionLeveragedDCAStateWithJumps(
+function runGenericSimulationTemplate(
     state: StaticArray<f64>,
     config: StaticArray<f64>,
     monthlyDeposit: f64,
     targetLTV: f64,
     month: i32,
-    includeJumps: bool
+    oscillator: OscillatorMethod,
+    jump: JumpMethod
 ): void {
     if (month <= 0) {
         initializeLeveragedDCAState(state, config, targetLTV);
         return;
     }
 
-    state[STATE_SECURITIES] *= simulateGeometricBrownianMotionMonthlyGrowthFactor(config[CONFIG_GROWTH], config[CONFIG_VOLATILITY]);
-    if (includeJumps) state[STATE_SECURITIES] *= simulateMertonJumpFactor();
+    state[STATE_SECURITIES] *= oscillator(state, config, month);
+    state[STATE_SECURITIES] *= jump(state, config, month);
     const monthlyRate = (config[CONFIG_PRIME_RATE] + config[CONFIG_SPREAD]) / 12.0;
     state[STATE_DEBT] = accrueDebtInterest(state[STATE_DEBT], monthlyRate);
     state[STATE_LIQUIDATION] = applyMarginCall(state, config[CONFIG_MARGIN_CALL_LTV]);

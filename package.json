@@ -8,10 +8,13 @@
     "asbuild": "npm run asbuild:optimized && npm run asbuild:math && npm run asbuild:stats",
     "asbuild:math": "asc assembly/math.ts --target release --outFile build/math.wasm --textFile build/math.wat --sourceMap --bindings esm",
     "asbuild:stats": "asc assembly/stats.ts --target release --outFile build/stats.wasm --textFile build/stats.wat --sourceMap --bindings esm",
-    "test": "node tests/validation.js"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
-    "assemblyscript": "^0.27.37"
+    "assemblyscript": "^0.27.37",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.9"
   },
   "type": "module"
 }

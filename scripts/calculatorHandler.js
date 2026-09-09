@@ -15,6 +15,12 @@ function getStandardDefaults() {
 
 function setInputLocked(element, isLocked) {
     if (!element) return;
+    // readOnly has no effect on <select>, so selects must lock via disabled instead.
+    if (element.tagName === 'SELECT') {
+        element.disabled = isLocked;
+        element.classList.toggle('input-readonly', isLocked);
+        return;
+    }
     // Use a single lock path so all standard-mode fields look and behave the same.
     element.disabled = false;
     element.readOnly = isLocked;
@@ -36,7 +42,11 @@ function setMode(mode) {
         ? CopywritingHelpers.getModeStandardDescription() 
         : CopywritingHelpers.getModeCustomDescription();
     
-    ['growth', 'vol', 'marginCall', 'primeRate', 'spreadRate', 'inflationRate']
+    ['growth', 'vol', 'marginCall', 'primeRate', 'spreadRate', 'inflationRate',
+        'oscillatorSelect', 'tailModelSelect',
+        'garchOmega', 'garchAlpha', 'garchBeta',
+        'hestonKappa', 'hestonTheta', 'hestonSigmaV', 'hestonRho',
+        'mertonJumpLambda', 'mertonJumpMu', 'mertonJumpSigma']
         .forEach(id => setInputLocked(document.getElementById(id), isStandard));
     
     // Show LTV slider in both modes; the loan derivation stays hidden to the user
@@ -66,6 +76,9 @@ function setMode(mode) {
         document.getElementById('vol').value = standardDefaults.VOLATILITY;
         document.getElementById('marginCall').value = standardDefaults.MARGIN_CALL_LTV;
         document.getElementById('inflationRate').value = standardDefaults.INFLATION_RATE;
+        // Standard Mode always runs the GBM+Merton provider
+        document.getElementById('oscillatorSelect').value = 'gbm';
+        document.getElementById('tailModelSelect').value = 'merton';
         
         // Cap LTV at 35% if it was higher in custom mode
         let currentLtv = parseFloat(ltvSlider.value);
@@ -815,7 +828,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Calculate and set initial loan amount
     const initialLoanAmount = (DEFAULT_INPUTS.STARTING_DEPOSIT * DEFAULT_INPUTS.STARTING_LTV / 100).toFixed(0);
     document.getElementById('loanAmount').value = initialLoanAmount;
-    
+
+    // Aspirational: pre-fill GARCH/Heston/Merton param inputs from config defaults; locked in standard mode via setMode.
+    document.getElementById('garchOmega').value = GARCH_PARAMS_DEFAULTS.OMEGA;
+    document.getElementById('garchAlpha').value = GARCH_PARAMS_DEFAULTS.ALPHA;
+    document.getElementById('garchBeta').value = GARCH_PARAMS_DEFAULTS.BETA;
+    document.getElementById('hestonKappa').value = HESTON_PARAMS_DEFAULTS.KAPPA;
+    document.getElementById('hestonTheta').value = HESTON_PARAMS_DEFAULTS.THETA;
+    document.getElementById('hestonSigmaV').value = HESTON_PARAMS_DEFAULTS.SIGMA_V;
+    document.getElementById('hestonRho').value = HESTON_PARAMS_DEFAULTS.RHO;
+    document.getElementById('mertonJumpLambda').value = MERTON_PARAMS_DEFAULTS.JUMP_LAMBDA;
+    document.getElementById('mertonJumpMu').value = MERTON_PARAMS_DEFAULTS.JUMP_MU;
+    document.getElementById('mertonJumpSigma').value = MERTON_PARAMS_DEFAULTS.JUMP_SIGMA;
+
     // Set initial mode to standard
     setMode('standard');
     

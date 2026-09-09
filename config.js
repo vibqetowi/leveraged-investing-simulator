@@ -3,9 +3,34 @@
  * Contains all assumption constants and UI defaults for testing lump sum vs DCA strategies
  */
 
+// Composite provider IDs: flat enum over (oscillator, tailModel, deposit, targetLTV) combos.
+// See documentation/DataFlow.md "Strategy Mapping" - only gbm+none and gbm+merton exist in math.ts today.
+const PROVIDER_ID_MAP = {
+    'gbm+none': 0,
+    'gbm+merton': 1,
+    'gbm+none+inflation': 2,        // aspirational, not yet implemented
+    'gbm+merton+inflation': 3,      // aspirational, not yet implemented
+    'garch+none': 4,                // aspirational, not yet implemented
+    'garch+merton': 5,              // aspirational, not yet implemented
+    'msgarch+none+lifecycle': 6,    // aspirational, not yet implemented
+    'msgarch+merton+lifecycle+inflation': 7 // aspirational, not yet implemented
+};
+
+// UI-facing option lists for the Custom Mode oscillator/tail model selectors
+const OSCILLATORS = {
+    GBM: { id: 'gbm', label: 'Geometric Brownian Motion (GBM)', implemented: true },
+    GARCH: { id: 'garch', label: 'GARCH', implemented: false },
+    MSGARCH: { id: 'msgarch', label: 'MS-GARCH', implemented: false }
+};
+
+const TAIL_MODELS = {
+    NONE: { id: 'none', label: 'None', implemented: true },
+    MERTON: { id: 'merton', label: 'Merton Jump-Diffusion', implemented: true }
+};
+
 // Standard Mode Default Values (Research-backed assumptions)
 const STANDARD_MODE_DEFAULTS = {
-    MODEL_ID: 1,               // 0 = GBM, 1 = Merton jump-diffusion
+    MODEL_ID: PROVIDER_ID_MAP['gbm+merton'], // providerId, see PROVIDER_ID_MAP above
     INFLATION_RATE: 3.5,      // Hardcoded: Long-term inflation expectation (%)
     PRIME_RATE: 6.0,          // Benchmark prime rate (%)
     SPREAD_RATE: 1.0,         // Lender spread above prime (%)
@@ -19,6 +44,27 @@ const STANDARD_MODE_DEFAULTS = {
 function getEffectiveBorrowingRate(primeRate = STANDARD_MODE_DEFAULTS.PRIME_RATE, spreadRate = STANDARD_MODE_DEFAULTS.SPREAD_RATE) {
     return primeRate + spreadRate;
 }
+
+// Aspirational Config struct fields (see documentation/DataFlow.md "Memory Layout").
+// Not yet wired to wasm; math.ts still uses a fixed Merton jump distribution and no GARCH/Heston.
+const GARCH_PARAMS_DEFAULTS = {
+    OMEGA: 0.00001,   // long-run variance constant
+    ALPHA: 0.08,      // weight on the most recent squared shock
+    BETA: 0.90        // weight on prior conditional variance (persistence)
+};
+
+const HESTON_PARAMS_DEFAULTS = {
+    KAPPA: 2.0,       // speed of mean reversion of variance
+    THETA: 0.04,      // long-run variance level
+    SIGMA_V: 0.3,     // volatility of variance ("vol of vol")
+    RHO: -0.7         // correlation between asset and variance shocks
+};
+
+const MERTON_PARAMS_DEFAULTS = {
+    JUMP_LAMBDA: 0.125, // expected jumps per year (~once per 8 years, matches current hardcoded p=1/96 monthly)
+    JUMP_MU: -0.225,    // mean jump size (log-return), midpoint of current -15% to -30% range
+    JUMP_SIGMA: 0.075   // jump size volatility
+};
 
 // Default Input Values
 const DEFAULT_INPUTS = {
@@ -102,10 +148,22 @@ if (typeof window !== 'undefined') {
     window.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
     window.DEFAULT_INPUTS = DEFAULT_INPUTS;
     window.UI_CONSTANTS = UI_CONSTANTS;
+    window.PROVIDER_ID_MAP = PROVIDER_ID_MAP;
+    window.OSCILLATORS = OSCILLATORS;
+    window.TAIL_MODELS = TAIL_MODELS;
+    window.GARCH_PARAMS_DEFAULTS = GARCH_PARAMS_DEFAULTS;
+    window.HESTON_PARAMS_DEFAULTS = HESTON_PARAMS_DEFAULTS;
+    window.MERTON_PARAMS_DEFAULTS = MERTON_PARAMS_DEFAULTS;
     window.config = {
         STANDARD_MODE_DEFAULTS,
         DEFAULT_INPUTS,
-        UI_CONSTANTS
+        UI_CONSTANTS,
+        PROVIDER_ID_MAP,
+        OSCILLATORS,
+        TAIL_MODELS,
+        GARCH_PARAMS_DEFAULTS,
+        HESTON_PARAMS_DEFAULTS,
+        MERTON_PARAMS_DEFAULTS
     };
 }
 
@@ -113,10 +171,22 @@ if (typeof globalThis !== 'undefined') {
     globalThis.STANDARD_MODE_DEFAULTS = STANDARD_MODE_DEFAULTS;
     globalThis.DEFAULT_INPUTS = DEFAULT_INPUTS;
     globalThis.UI_CONSTANTS = UI_CONSTANTS;
+    globalThis.PROVIDER_ID_MAP = PROVIDER_ID_MAP;
+    globalThis.OSCILLATORS = OSCILLATORS;
+    globalThis.TAIL_MODELS = TAIL_MODELS;
+    globalThis.GARCH_PARAMS_DEFAULTS = GARCH_PARAMS_DEFAULTS;
+    globalThis.HESTON_PARAMS_DEFAULTS = HESTON_PARAMS_DEFAULTS;
+    globalThis.MERTON_PARAMS_DEFAULTS = MERTON_PARAMS_DEFAULTS;
     globalThis.config = globalThis.config || {
         STANDARD_MODE_DEFAULTS,
         DEFAULT_INPUTS,
-        UI_CONSTANTS
+        UI_CONSTANTS,
+        PROVIDER_ID_MAP,
+        OSCILLATORS,
+        TAIL_MODELS,
+        GARCH_PARAMS_DEFAULTS,
+        HESTON_PARAMS_DEFAULTS,
+        MERTON_PARAMS_DEFAULTS
     };
 }
 
@@ -125,6 +195,12 @@ if (typeof module !== 'undefined' && module.exports) {
         STANDARD_MODE_DEFAULTS, 
         UI_CONSTANTS, 
         DEFAULT_INPUTS,
+        PROVIDER_ID_MAP,
+        OSCILLATORS,
+        TAIL_MODELS,
+        GARCH_PARAMS_DEFAULTS,
+        HESTON_PARAMS_DEFAULTS,
+        MERTON_PARAMS_DEFAULTS,
         calculateRequiredBufferSize 
     };
 }

@@ -132,7 +132,7 @@ const CopywritingHelpers = {
                     <tr class="comparison-table-header">
                         <th class="comparison-table-header"></th>
                         <th class="comparison-table-header">Simple</th>
-                        <th class="comparison-table-header">Recoverable Risk</th>
+                        <th class="comparison-table-header">Resilient</th>
                         <th class="comparison-table-header">Excess Returns</th>
                         <th class="comparison-table-header">Efficient</th>
                     </tr>
@@ -196,8 +196,8 @@ const CopywritingHelpers = {
 
 
         `;
-    },
-
+    },  
+    
     /**
      * Get the lifecycle preamble markup
      */

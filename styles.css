@@ -455,7 +455,8 @@ body {
 }
 
 .input-group input[type="number"],
-.input-group input[type="text"] {
+.input-group input[type="text"],
+.input-group select {
     padding: 10px 12px;
     border: 1px solid var(--md-border-light);
     border-radius: var(--md-radius-sm);
@@ -465,7 +466,8 @@ body {
 }
 
 .input-group input[type="number"]:focus,
-.input-group input[type="text"]:focus {
+.input-group input[type="text"]:focus,
+.input-group select:focus {
     outline: none;
     border-color: var(--md-primary);
     border-width: 2px;

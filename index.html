@@ -34,7 +34,7 @@
             </p>
             <ul class="compact-list">
                 <li><strong>Simplicity:</strong> No market timing, no stock picking, no financial degree. A mechanical rule executable for 30 years without active management.</li>
-                <li><strong>Recoverable Risk:</strong> Downturns occur. The strategy must be maintainable through good and bad market cycles.</li>
+                <li><strong>Resilient:</strong> Downturns occur. The strategy must be maintainable through good and bad market cycles.</li>
                 <li><strong>Excess Returns:</strong> Consistent outperformance of a benchmark strategy over long periods.</li>
                 <li><strong>Efficiency:</strong> Minimized taxes and fees.</li>
             </ul>
@@ -110,6 +110,106 @@
     </div>
 
     <div class="grid">
+        <!-- Aspirational: not yet wired to the orchestrator/wasm, see documentation/DataFlow.md UI Selection Mapping -->
+        <div class="input-group" id="oscillatorGroup">
+            <div class="label-wrapper">
+                <label>Market Oscillator <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Selects the routine-return generator. Combined with the Tail/Shock Model below to pick a precompiled simulation provider.</div>
+            </div>
+            <select id="oscillatorSelect">
+                <option value="gbm">Geometric Brownian Motion (GBM)</option>
+                <option value="garch" disabled>GARCH (not yet implemented)</option>
+                <option value="msgarch" disabled>MS-GARCH (not yet implemented)</option>
+            </select>
+        </div>
+        <div class="input-group" id="tailModelGroup">
+            <div class="label-wrapper">
+                <label>Tail/Shock Model <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Selects the crash/jump overlay applied on top of the chosen oscillator. "None" runs the oscillator alone.</div>
+            </div>
+            <select id="tailModelSelect">
+                <option value="none">None</option>
+                <option value="merton">Merton Jump-Diffusion</option>
+            </select>
+        </div>
+
+        <!-- Aspirational: GARCH params (Config.omega/alpha/beta), not yet wired to math.ts -->
+        <div class="input-group is-hidden" id="garchOmegaGroup">
+            <div class="label-wrapper">
+                <label>GARCH Omega <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Long-run variance constant for the GARCH oscillator.</div>
+            </div>
+            <input type="number" id="garchOmega" step="0.00001">
+        </div>
+        <div class="input-group is-hidden" id="garchAlphaGroup">
+            <div class="label-wrapper">
+                <label>GARCH Alpha <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Weight on the most recent squared shock in the GARCH oscillator.</div>
+            </div>
+            <input type="number" id="garchAlpha" step="0.01">
+        </div>
+        <div class="input-group is-hidden" id="garchBetaGroup">
+            <div class="label-wrapper">
+                <label>GARCH Beta <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Weight on prior conditional variance (persistence) in the GARCH oscillator.</div>
+            </div>
+            <input type="number" id="garchBeta" step="0.01">
+        </div>
+
+        <!-- Aspirational: Heston params (Config.kappa/theta/sigma_v/rho), not yet wired to math.ts -->
+        <div class="input-group is-hidden" id="hestonKappaGroup">
+            <div class="label-wrapper">
+                <label>Heston Kappa <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Speed of mean reversion of variance in the Heston oscillator.</div>
+            </div>
+            <input type="number" id="hestonKappa" step="0.1">
+        </div>
+        <div class="input-group is-hidden" id="hestonThetaGroup">
+            <div class="label-wrapper">
+                <label>Heston Theta <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Long-run variance level in the Heston oscillator.</div>
+            </div>
+            <input type="number" id="hestonTheta" step="0.01">
+        </div>
+        <div class="input-group is-hidden" id="hestonSigmaVGroup">
+            <div class="label-wrapper">
+                <label>Heston Sigma_v <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Volatility of variance ("vol of vol") in the Heston oscillator.</div>
+            </div>
+            <input type="number" id="hestonSigmaV" step="0.01">
+        </div>
+        <div class="input-group is-hidden" id="hestonRhoGroup">
+            <div class="label-wrapper">
+                <label>Heston Rho <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Correlation between asset and variance shocks in the Heston oscillator.</div>
+            </div>
+            <input type="number" id="hestonRho" step="0.01">
+        </div>
+
+        <!-- Aspirational: Merton jump params (Config.jump_lambda/jump_mu/jump_sigma). Merton overlay is implemented,
+             but its jump distribution is still hardcoded in math.ts rather than driven by these inputs. -->
+        <div class="input-group is-hidden" id="mertonJumpLambdaGroup">
+            <div class="label-wrapper">
+                <label>Merton Jump Lambda <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Expected number of jumps per year.</div>
+            </div>
+            <input type="number" id="mertonJumpLambda" step="0.01">
+        </div>
+        <div class="input-group is-hidden" id="mertonJumpMuGroup">
+            <div class="label-wrapper">
+                <label>Merton Jump Mu <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Mean jump size (log-return).</div>
+            </div>
+            <input type="number" id="mertonJumpMu" step="0.01">
+        </div>
+        <div class="input-group is-hidden" id="mertonJumpSigmaGroup">
+            <div class="label-wrapper">
+                <label>Merton Jump Sigma <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">Jump size volatility.</div>
+            </div>
+            <input type="number" id="mertonJumpSigma" step="0.01">
+        </div>
+
         <div class="input-group">
             <div class="label-wrapper">
                 <label>Simulation Period (Years) <div class="tooltip-icon">?</div></label>
@@ -176,8 +276,8 @@
         </div>
         <div class="input-group">
             <div class="label-wrapper">
-                <label>Initial Margin Call Threshold (%) <div class="tooltip-icon">?</div></label>
-                <div class="tooltip-popup">The starting maximum LTV before the lender forces liquidation. In some models this threshold stays fixed; in others it may vary with regime, account structure, or lender rules. This value is treated as the initial condition for the simulation. <span id="margin-call-tooltip"></span> is a common baseline.</div>
+                <label>Margin Call Threshold (%) <div class="tooltip-icon">?</div></label>
+                <div class="tooltip-popup">The maximum LTV before the lender forces liquidation. <span id="margin-call-tooltip"></span> is a common baseline.</div>
             </div>
             <input type="number" id="marginCall" step="0.1">
         </div>
@@ -403,7 +503,6 @@
         </div>
 
 
-</div>
 </div>
 
 <script src="scripts/calculatorHandler.js"></script>

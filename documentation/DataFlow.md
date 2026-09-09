@@ -7,10 +7,10 @@ index.html
   -> calculatorHandler.js (reads UI, builds config, requests sims)
   -> simulationOrchestrator.js
       1. Pre-compute deposit and LTV schedules (see Schedule Optimization)
-      2. Build function table from math provider exports
+      2. Resolve (oscillator, tailModel) selection to a providerId (see Composite Provider Pattern)
       3. Spawn one worker per strategy
       -> simulationWorker.js (one per strategy)
-          1. Load sim.wasm with injected function table
+          1. Load sim.wasm, pass providerId as a plain integer
           2. Run 10,000 independent scenarios through sim
           3. Pass raw paths to stats.wasm
           4. Return stats result to orchestrator
@@ -20,29 +20,29 @@ index.html
 
 Each worker owns one strategy run. A strategy run contains many independent scenarios (e.g., 10,000). Each scenario contains a complete path from month zero through the final month.
 
-## Function Table Pattern
+## Composite Provider Pattern
+
+Each oscillator + tail/shock model combination (e.g. GBM paired with Merton jumps) is precompiled into its own transition function inside math.ts, not assembled dynamically at runtime. No `WebAssembly.Table` or `call_indirect` crosses the JS/WASM boundary; selection is a single integer.
 
 ```text
-orchestrator.js                     sim.wasm                        math exports
-    |                                  |                                |
-    ├─ load math provider               |                                |
-    ├─ read config                      |                                |
-    ├─ map config -> function ref       |                                |
-    ├─ create WebAssembly.Table         |                                |
-    │   table.set(0, math.transition_gbm_lifecycle)                       |
-    ├─ build deposit schedule           |                                |
-    ├─ build LTV schedule               |                                |
-    ├─ spin up worker with table +      |                                |
-    │   schedules + config              |                                |
-    │                                  │                                |
-    │   worker instantiates sim ───────▶ import table                    |
-    │                                  call_indirect(0, state, config,   |
-    │                                     deposits, ltv_schedule) ──────├──▶ transition_gbm_lifecycle
-    │                                  ◀──────── return void (state      |
-    │                                     mutated in place)              │
+index.html (Custom Mode)          orchestrator.js                  sim.wasm                     math (PROVIDERS array)
+    |                                  |                                |                              |
+    ├─ oscillator dropdown ──┐          |                                |                              |
+    ├─ tail model dropdown ──┼─▶ read (oscillator, tailModel)            |                              |
+    │                        |    ├─ look up providerId in flat map      |                              |
+    │                        |    │   PROVIDER_ID_MAP["gbm+merton"] = 1  |                              |
+    │                        |    ├─ build deposit schedule              |                              |
+    │                        |    ├─ build LTV schedule                  |                              |
+    │                        |    ├─ spin up worker with providerId +    |                              |
+    │                        |    │   schedules + config                 |                              |
+    │                        |    │                                     |                              |
+    │                        |    │   worker instantiates sim ──────────▶ runSimulation(providerId)      |
+    │                        |    │                                     ├─ getSimulationMethod(providerId) ▶ PROVIDERS[providerId]
+    │                        |    │                                     │   invokes composite function ──▶ transition_gbm_merton_const
+    │                        |    │                                     ◀──────── return raw state paths  |
 ```
 
-New strategies ship as new exports in the math provider. `sim.wasm` never changes.
+New combos ship as new precompiled composite functions appended to `PROVIDERS`, plus a new entry in `PROVIDER_ID_MAP`. `sim.wasm` never changes.
 
 ## State Vector
 
@@ -89,18 +89,16 @@ Each month in the sim loop, the math function executes:
 4. **Deposit:** Read `deposits[month]`, subtract from `debt`.
 5. **Buy / Restore LTV:** Read `ltv_schedule[month]`, rebalance `securities` and `debt` to hit target LTV.
 
-The sim calls `call_indirect(func_table_idx, state_ptr, config_ptr, deposits_ptr, ltv_schedule_ptr, month)` each step. The math function handles all five steps internally. The sim records `securities` and `debt` after each step into the output arrays.
+The sim calls `runSimulation(providerId)`, which dispatches to `PROVIDERS[providerId]` inside math.ts and invokes that composite function directly for `(state_ptr, config_ptr, deposits_ptr, ltv_schedule_ptr, month)` each step. The composite function handles all five steps internally, including any tail/shock overlay (e.g. Merton jumps). The sim records `securities` and `debt` after each step into the output arrays.
 
 ## Strategy Mapping
 
-| Oscillator | Deposit | Target LTV | Function Name | State Var Changes | Status |
-|------------|---------|------------|---------------|-------------------|--------|
-| GBM | Constant | Constant | `transition_gbm_const` | drift/vol unchanged | Implemented |
-| Merton | Constant | Constant | `transition_merton_const` | drift/vol unchanged | Implemented |
-| GBM | Inflation | Constant | `transition_gbm_inflation` | drift/vol unchanged | Not yet implemented |
-| GARCH | Constant | Constant | `transition_garch_const` | vol updated, prev_return updated | Not yet implemented |
-| MS-GARCH | Constant | Lifecycle | `transition_msgarch_lifecycle` | drift/vol/regime updated | Not yet implemented |
-| MS-GARCH | Inflation | Lifecycle | `transition_msgarch_lifecycle_inf` | drift/vol/regime updated | Not yet implemented |
+Merton is a jump-diffusion overlay on an oscillator, not a standalone oscillator, so combos are named `transition_{oscillator}_{tailModel}_{depositModel}`. The `transition_merton_const` row from earlier docs is reframed below as GBM + Merton, matching what the code actually computes.
+
+| Oscillator | Tail Model | Deposit | Target LTV | Function Name | Provider ID | State Var Changes | Status |
+|------------|-----------|---------|------------|---------------|-------------|-------------------|--------|
+| GBM | None | Constant | Constant | `transition_gbm_none_const` | 0 | drift/vol unchanged | Implemented |
+| GBM | Merton | Constant | Constant | `transition_gbm_merton_const` | 1 | drift/vol unchanged | Implemented |
 
 ## Module Contracts
 
@@ -108,9 +106,9 @@ The sim calls `call_indirect(func_table_idx, state_ptr, config_ptr, deposits_ptr
 
 **Responsibilities:**
 
-- Receive initial state, function table, config, and read-only schedules.
+- Receive initial state, providerId, config, and read-only schedules.
 - Iterate through configured scenarios and months.
-- Invoke the supplied transition function for each step via `call_indirect`.
+- Dispatch to the composite transition function selected by `providerId` for each step.
 - Record the state returned by that behavior.
 - Return raw state paths.
 
@@ -120,10 +118,11 @@ The sim calls `call_indirect(func_table_idx, state_ptr, config_ptr, deposits_ptr
 
 **Responsibilities:**
 
+- Export one precompiled composite provider function per valid (oscillator, tailModel, deposit, targetLTV) combination, registered in a static `PROVIDERS` array indexed by `providerId`.
 - Stochastic innovations and returns.
 - Account or domain-state transitions.
 - Model-specific state evolution (drift, vol, regime, prev_return).
-- All five monthly steps (stochastic, interest, margin, deposit, buy).
+- All five monthly steps (stochastic, interest, margin, deposit, buy), including any tail/shock overlay.
 
 **Configuration:**
 
@@ -158,7 +157,7 @@ The sim calls `call_indirect(func_table_idx, state_ptr, config_ptr, deposits_ptr
 
 **Responsibilities:**
 
-1. Load sim.wasm with injected function table.
+1. Load sim.wasm and pass the resolved providerId.
 2. Supply strategy configuration and schedules to sim.
 3. Run the complete simulation (all scenarios, all months).
 4. Receive the complete raw scenario tensor.
@@ -173,9 +172,9 @@ Raw tensors remain inside the worker. The orchestrator never sees raw paths.
 
 - Receive validated simulation configuration from calculatorHandler.
 - Pre-compute deposit and LTV schedules (see Schedule Optimization).
-- Build the function table from math provider exports.
+- Resolve the UI's (oscillator, tailModel) selection to a `providerId` via `PROVIDER_ID_MAP`.
 - Create strategy jobs (one per strategy).
-- Spawn workers with prepared tables, schedules, and config.
+- Spawn workers with the resolved providerId, schedules, and config.
 - Handle worker completion, errors, and timeouts.
 - Collect stats results from all workers.
 - Return the collection of strategy results.
@@ -184,7 +183,7 @@ Raw tensors remain inside the worker. The orchestrator never sees raw paths.
 
 **Responsibilities:**
 
-- Read and validate UI inputs.
+- Read and validate UI inputs, including the Custom Mode oscillator and tail model selectors.
 - Construct simulation configuration.
 - Request simulations through the orchestrator.
 - Select a returned strategy result.
@@ -192,6 +191,25 @@ Raw tensors remain inside the worker. The orchestrator never sees raw paths.
 - Use copywritingHelper.js for presentation text.
 
 Charts consume arrays returned by stats.wasm directly.
+
+#### UI Selection Mapping
+
+Custom Mode exposes two independent selectors instead of a single hardcoded model:
+
+- **Market Oscillator:** GBM (implemented); GARCH, MS-GARCH shown disabled as future options.
+- **Tail/Shock Model:** None (implemented), Merton (implemented); other jump/tail models future.
+
+calculatorHandler.js combines the two selections into a single `providerId` using a flat lookup table, e.g.:
+
+```javascript
+const PROVIDER_ID_MAP = {
+  "gbm+none": 0,
+  "gbm+merton": 1,
+  // future: "garch+none": 4, "garch+merton": 5, ...
+};
+```
+
+Only combos present in `PROVIDER_ID_MAP` are selectable; unimplemented combos remain disabled in the dropdowns until their composite provider ships in math.ts.
 
 ### copywritingHelper.js
 
@@ -222,7 +240,7 @@ struct Config {
   f64 kappa, theta, sigma_v, rho;  // Heston params (future)
   f64 jump_lambda, jump_mu, jump_sigma; // Merton params
   f64 spread;                      // prime + spread; spread is config, prime is state
-  u32 model_id;                    // enum: GBM=0, Merton=1, GARCH=2, MSGARCH=3
+  u32 model_id;                    // providerId: flat enum over (oscillator, tailModel, deposit, targetLTV) combos, see Strategy Mapping
 };
 ```
 
@@ -230,11 +248,16 @@ Arrays (`securities[]`, `debt[]`, `deposits[]`, `ltv_schedule[]`) are passed as 
 
 ## Future Extensibility
 
+Adding a new oscillator, tail model, or combo requires no changes to sim.wasm or the dispatch mechanism:
+
+1. Write the new composite transition function in math.ts.
+2. Append it to the `PROVIDERS` array with the next `providerId`.
+3. Add the corresponding entry to `PROVIDER_ID_MAP` and enable the dropdown option(s) in Custom Mode.
+
 | Feature | State Var | Config Item | Notes |
 |---------|-----------|-------------|-------|
 | Stochastic Prime | `prime_rate` (f64) | spread (f64) | Prime evolves via Vasicek/Hull-White. Spread fixed. |
 | Variable Inflation | `inflation` (f64) | : | Inflation autoregression. Current: constant. |
-| Slippage | `liquidity` (f64) | λ (f64) | Kyle's model. Not needed for retail investors. |
 | Regime Transition Matrix | none (stored in config) | P[K][K] | 2x2 for now, expandable. |
 
 ## Required Invariants

@@ -15,6 +15,13 @@
     --md-text-primary: #212121;
     --md-text-secondary: #757575;
     --md-text-muted: #666;
+    --md-chart-ruin-opacity: 0.8;
+    --md-chart-outcome-opacity: 0.6;
+    --md-chart-dca-survival: var(--md-info-border);
+    --md-chart-dca-overlay: #bdbdbd;
+    --md-chart-dca-overlay-opacity: 0.3;
+    --md-chart-leveraged: var(--md-primary);
+    --md-chart-unleveraged: var(--md-info-border);
 
     --md-warning-bg: #fff3cd;
     --md-warning-border: #ff9800;
@@ -455,7 +462,8 @@ body {
 }
 
 .input-group input[type="number"],
-.input-group input[type="text"] {
+.input-group input[type="text"],
+.input-group select {
     padding: 10px 12px;
     border: 1px solid var(--md-border-light);
     border-radius: var(--md-radius-sm);
@@ -465,7 +473,8 @@ body {
 }
 
 .input-group input[type="number"]:focus,
-.input-group input[type="text"]:focus {
+.input-group input[type="text"]:focus,
+.input-group select:focus {
     outline: none;
     border-color: var(--md-primary);
     border-width: 2px;

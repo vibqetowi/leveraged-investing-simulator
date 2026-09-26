@@ -7,6 +7,32 @@ let statsInstance = null;
 let simMemory = null;
 let statsMemory = null;
 
+// Dev-only performance tracing (no-op unless the worker's own origin is localhost,
+// e.g. `npm run dev`). Workers get their own timeline track in DevTools Performance.
+const PERF_TRACE_ENABLED = (() => {
+    try {
+        const host = typeof location !== 'undefined' ? location.hostname : '';
+        return host === 'localhost' || host === '127.0.0.1';
+    } catch (e) {
+        return false;
+    }
+})();
+
+let perfEntries = [];
+
+function perfMark(name) {
+    if (!PERF_TRACE_ENABLED) return;
+    try { performance.mark(name); } catch (e) { /* ignore */ }
+}
+
+function perfMeasure(label, startMark, endMark) {
+    if (!PERF_TRACE_ENABLED) return;
+    try {
+        const entry = performance.measure(label, startMark, endMark);
+        perfEntries.push({ name: label, duration: entry ? entry.duration : 0 });
+    } catch (e) { /* ignore */ }
+}
+
 async function loadModule(path) {
     const response = await fetch(path);
     if (!response.ok) throw new Error(`Failed to fetch ${path}: HTTP ${response.status}`);
@@ -75,13 +101,13 @@ function validateRawResults(rawResults) {
     return { months, scenarios, stateCount, points };
 }
 
-function runStats(rawResults, benchmarkMedian, totalRealDeposits) {
+function runStats(rawResults, benchmarkMean, totalRealDeposits, statsConfig) {
     const { months, scenarios, stateCount, points } = validateRawResults(rawResults);
     if (stateCount !== 3) {
         throw new Error(`Unsupported state count: ${stateCount}`);
     }
 
-    const inputSize = 6 + (points * stateCount);
+    const inputSize = 10 + (points * stateCount);
     const view = new Float64Array(statsMemory.buffer, statsInstance.exports.getInputPtr(), inputSize);
     view.fill(0);
     view[0] = months;
@@ -89,29 +115,64 @@ function runStats(rawResults, benchmarkMedian, totalRealDeposits) {
     view[2] = rawResults[3]; // equity, informational
     view[3] = totalRealDeposits;
     view[4] = rawResults[4]; // inflation
-    view[5] = benchmarkMedian || 0;
-    view.set(rawResults.subarray(9, 9 + points), 6);
-    view.set(rawResults.subarray(9 + points, 9 + 2 * points), 6 + points);
-    view.set(rawResults.subarray(9 + 2 * points, 9 + 3 * points), 6 + 2 * points);
+    view[5] = benchmarkMean || 0;
+    view[6] = statsConfig.retainedPercentile;
+    view[7] = statsConfig.medianPercentile;
+    view[8] = statsConfig.highPercentile;
+    view[9] = statsConfig.histogramBins;
+    view.set(rawResults.subarray(9, 9 + points), 10);
+    view.set(rawResults.subarray(9 + points, 9 + 2 * points), 10 + points);
+    view.set(rawResults.subarray(9 + 2 * points, 9 + 3 * points), 10 + 2 * points);
     return copyOutput(statsInstance, statsMemory, statsInstance.exports.runStats());
 }
 
 self.onmessage = async function (event) {
     const { id, inputs, strategyIndex } = event.data;
+    const workerStart = performance.now();
+    perfEntries = [];
     try {
+        const wasWasmCold = !simInstance || !statsInstance;
+        perfMark('wasm-init-start');
         await initWasm();
+        perfMark('wasm-init-end');
+        if (wasWasmCold) perfMeasure('wasm-init', 'wasm-init-start', 'wasm-init-end');
+
+        perfMark('marshal-start');
         marshalInputs(inputs);
-        const rawSize = simInstance.exports.runSimulation(inputs.providerId || 0);
+        perfMark('marshal-end');
+        perfMeasure('marshal', 'marshal-start', 'marshal-end');
+
+        if (!Number.isInteger(inputs.providerId) || inputs.providerId < 0) {
+            throw new Error('Invalid simulation provider ID');
+        }
+        perfMark('run-simulation-start');
+        const rawSize = simInstance.exports.runSimulation(inputs.providerId);
         const rawResults = copyOutput(simInstance, simMemory, rawSize);
+        perfMark('run-simulation-end');
+        perfMeasure('run-simulation', 'run-simulation-start', 'run-simulation-end');
+
         const tensor = validateRawResults(rawResults);
-        const statsResults = runStats(rawResults, inputs.benchmarkMedian, inputs.totalRealDeposits);
+
+        perfMark('run-stats-start');
+        const statsResults = runStats(
+            rawResults,
+            inputs.benchmarkMean,
+            inputs.totalRealDeposits,
+            inputs.statsConfig
+        );
+        perfMark('run-stats-end');
+        perfMeasure('run-stats', 'run-stats-start', 'run-stats-end');
+
         self.postMessage({
             id,
             success: true,
             strategyIndex,
             months: tensor.months,
             scenarios: tensor.scenarios,
-            statsResults
+            statsResults,
+            computeTime: performance.now() - workerStart,
+            timings: PERF_TRACE_ENABLED ? perfEntries : undefined,
+            targetLTV: inputs.targetLTV ?? 0
         });
     } catch (error) {
         self.postMessage({ id, success: false, strategyIndex, error: String(error) });

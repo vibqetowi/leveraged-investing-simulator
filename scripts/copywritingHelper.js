@@ -6,6 +6,31 @@
 /**
  * Get config value formatters and text generators
  */
+const moneyFormatter = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: 'USD',
+    currencyDisplay: 'narrowSymbol',
+    maximumFractionDigits: 0
+});
+
+const percentageFormatter = new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+});
+
+function numberOr(value, fallback = 0) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+}
+
+function formatMoney(value) {
+    return moneyFormatter.format(numberOr(value));
+}
+
+function formatPercentage(value) {
+    return `${percentageFormatter.format(numberOr(value))}%`;
+}
+
 const CopywritingHelpers = {
     /**
      * Get effective borrowing rate description
@@ -88,14 +113,14 @@ const CopywritingHelpers = {
      * Get mode description for Standard Mode
      */
     getModeStandardDescription() {
-        return `<p><strong>Standard Mode:</strong> The simulator starts from a research-backed baseline for the monthly-deposit and target-LTV framework; Custom Mode allows adjustment of additional parameters.</p>`;
+        return `<p><strong>Standard Mode:</strong> The simulator starts from a research-backed baseline for the monthly-deposit and max-test-LTV framework; Custom Mode allows adjustment of additional parameters.</p>`;
     },
 
     /**
      * Get mode description for Custom Mode
      */
     getModeCustomDescription() {
-        return `<p><strong>Custom Mode:</strong> All key inputs are unlocked for testing different monthly budgets, borrowing costs, expected returns, volatility assumptions, and liquidation thresholds without changing the core logic for deposits and target LTV.</p>`;
+        return `<p><strong>Custom Mode:</strong> All key inputs are unlocked for testing different monthly budgets, borrowing costs, expected returns, volatility assumptions, liquidation thresholds, and maximum tested LTV without changing the core logic for deposits and the 0% to max-LTV strategy spectrum.</p>`;
     },
 
     /**
@@ -105,7 +130,7 @@ const CopywritingHelpers = {
         return `
                   <h3 class="section-title-center">As Close to Ideal as Possible: Leveraged DCA</h3>
             <p>
-                <strong>Leveraged DCA is DCA with two additions: maintaining a target LTV and avoiding voluntary sales.</strong> The same amount is deposited every month. How much gets bought depends on where LTV sits relative to target.
+                <strong>Leveraged DCA introduces two additions: maintaining a target LTV and avoiding voluntary sales.</strong> The same amount is deposited every period. How much gets bought depends on where LTV sits relative to target.
             </p>
 
             <h4 class="section-title-left">Working Example</h4>
@@ -132,7 +157,7 @@ const CopywritingHelpers = {
                     <tr class="comparison-table-header">
                         <th class="comparison-table-header"></th>
                         <th class="comparison-table-header">Simple</th>
-                        <th class="comparison-table-header">Recoverable Risk</th>
+                        <th class="comparison-table-header">Resilient</th>
                         <th class="comparison-table-header">Excess Returns</th>
                         <th class="comparison-table-header">Efficient</th>
                     </tr>
@@ -188,16 +213,16 @@ const CopywritingHelpers = {
                 <strong>Given a margin account, monthly budget, and a time horizon, the question becomes: what's the maximum LTV that can be responsibly maintained?</strong>
             </p>
             <p>
-                Too low and there are low chances of excess returns. Too high and liquidation happens in the first major crash. The simulator runs thousands of randomized market scenarios at a given target LTV to estimate outcome probabilities.
+                Too low and there are low chances of excess returns. Too high and liquidation happens in the first major crash. The simulator runs thousands of randomized market scenarios across the full 0% to a maximum test LTV to estimate outcome probabilities.
             </p>
             <p>
-                <strong>In general, over a long time horizon, more leverage means higher returns.</strong> The slider starts at the base strategy (0% target LTV) and can be moved up to explore higher borrowing levels interactively after running the simulation.
+                <strong>In general, over a long time horizon, more leverage means higher returns.</strong> The calculator starts at the DCA base case (0% LTV) and automatically tests the leverage spectrum up to the selected maximum LTV in smooth, readable increments.
             </p>
 
 
         `;
-    },
-
+    },  
+    
     /**
      * Get the lifecycle preamble markup
      */
@@ -219,13 +244,16 @@ const CopywritingHelpers = {
     /**
      * Format strategy summary narrative with current values
      */
-    getStrategySummaryNarrative(targetLTV, survivalRate, medianRealWealth, benchmarkMedian, delta) {
-        const deltaPrefix = delta >= 0 ? '+' : '-';
+    getStrategySummaryNarrative(targetLTV = 0, survivalRate = 0, medianRealWealth = 0, benchmarkMean = 0, delta = 0, totalDeposits = 0) {
+        const target = numberOr(targetLTV);
+        const median = numberOr(medianRealWealth);
+        const benchmark = numberOr(benchmarkMean, median);
+        const difference = numberOr(delta, median - benchmark);
+        const differencePrefix = difference >= 0 ? '+' : '-';
         return {
-            strategy: `The selected strategy maintains a target LTV of <strong>${(targetLTV * 100).toFixed(1)}%</strong> while the portfolio evolves through monthly market movements and deposits.`,
-            outcomes: `This allocation results in a <strong>${survivalRate.toFixed(1)}%</strong> probability of survival. In the expected case, real wealth (in today's purchasing power) is <strong>$${medianRealWealth.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong>.`,
-            baseline: `DCA Baseline Comparison: The equivalent no-leverage strategy would likely produce <strong>$${benchmarkMedian.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong> in real wealth.`,
-            leverageImpact: `Leverage Impact: ${deltaPrefix}$${Math.abs(delta).toLocaleString(undefined, {maximumFractionDigits: 0})}`
+            strategy: `The selected strategy maintains a <strong>target LTV of ${formatPercentage(target * 100)}</strong> while the portfolio evolves through monthly market movements and deposits.`,
+            outcomes: `Across these simulated outcomes, this allocation has a <strong>median real wealth of ${formatMoney(median)} against ${formatMoney(totalDeposits)} in deposits</strong>.`,
+            leverageImpact: `<strong>The median wealth impact of leverage is ${differencePrefix}${formatMoney(Math.abs(difference))} </strong> compared to the non leveraged scenario of median of ${formatMoney(benchmark)}`
         };
     },
 
@@ -347,9 +375,9 @@ const CopywritingHelpers = {
      */
     getOutcomeDescription(type) {
         const descriptions = {
-            ruin: 'Ended with real net worth below total real deposits (lost money).',
-            sucker: 'Ended strictly above total real deposits but underperformed DCA.',
-            profit: 'Ended strictly above total real deposits and outperformed the DCA baseline in real terms.'
+            ruin: 'Ended with real net worth at or below total real deposits (did not preserve contributions).',
+            sucker: 'Ended above total real deposits but below the simulated DCA mean.',
+            profit: 'Ended above total real deposits and above the simulated DCA mean.'
         };
         return descriptions[type] || '';
     },
@@ -378,7 +406,19 @@ const CopywritingHelpers = {
      */
     getFixStrategyHeaderText() {
         return 'Ways to Improve the Strategy';
-    }
+    },
+
+    /**
+     * Get baseline calculation progress message
+     */
+    getBaselineProgressMessage() {
+        return 'DCA baseline calculated. Simulating remaining leveraged strategies in the background...';
+    },
+
+    getResultsReadyMessage() {
+        return 'All leveraged strategies have been calculated.';
+    },
+
 };
 
 // Make available globally

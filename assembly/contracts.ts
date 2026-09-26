@@ -1,5 +1,11 @@
 export const RAW_HEADER_SIZE: i32 = 9;
-export const STATS_INPUT_HEADER_SIZE: i32 = 6;
+export const STATS_INPUT_HEADER_SIZE: i32 = 10;
+
+// Stats configuration values are supplied by the UI through the worker boundary.
+export const STATS_RETAINED_PERCENTILE: i32 = 6;
+export const STATS_MEDIAN_PERCENTILE: i32 = 7;
+export const STATS_HIGH_PERCENTILE: i32 = 8;
+export const STATS_HISTOGRAM_BINS: i32 = 9;
 
 // Flat config buffer indices shared by index.ts, math.ts, and the JS worker marshalling code.
 // Monthly budget and target LTV are NOT here: they vary per month and are supplied via the
@@ -20,6 +26,10 @@ export const CONFIG_STATE_COUNT: i32 = 9;
 export const STATE_SECURITIES: i32 = 0;
 export const STATE_DEBT: i32 = 1;
 export const STATE_LIQUIDATION: i32 = 2;
+
+// Oscillators and jumps return multiplicative factors. Stateful mechanisms may
+// update internal model state before returning their factor. Account mechanics
+// remain owned by the shared simulator template.
 
 export function pointCount(scenarioCount: i32, months: i32): i32 {
     return scenarioCount * (months + 1);

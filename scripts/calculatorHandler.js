@@ -3,6 +3,64 @@ let currentMode = 'standard';
 let simulationResults = null; // Store last simulation results for slider interaction
 const DEFAULT_STRATEGY_INDEX = 0;
 
+function enableSliderScrollLock(root = document) {
+    const activeLocks = new Map();
+    let restoreQueued = false;
+
+    const restoreSliderPositions = () => {
+        restoreQueued = false;
+        activeLocks.forEach((lock, slider) => {
+            if (!slider.isConnected) {
+                activeLocks.delete(slider);
+                return;
+            }
+
+            const offset = slider.getBoundingClientRect().top - lock.top;
+            if (offset !== 0) window.scrollBy(0, offset);
+        });
+    };
+
+    const queueRestore = () => {
+        if (restoreQueued || activeLocks.size === 0) return;
+        restoreQueued = true;
+        requestAnimationFrame(restoreSliderPositions);
+    };
+
+    const beginLock = (slider) => {
+        activeLocks.set(slider, { top: slider.getBoundingClientRect().top });
+    };
+
+    const attachLock = (slider) => {
+        if (slider.dataset.scrollLockEnabled === 'true') return;
+        slider.dataset.scrollLockEnabled = 'true';
+        slider.addEventListener('pointerdown', () => beginLock(slider));
+        slider.addEventListener('touchstart', () => beginLock(slider), { passive: true });
+        slider.addEventListener('focus', () => beginLock(slider));
+        slider.addEventListener('input', queueRestore, true);
+        ['change', 'pointerup', 'pointercancel', 'blur', 'touchend', 'touchcancel'].forEach((eventName) => {
+            slider.addEventListener(eventName, () => activeLocks.delete(slider));
+        });
+    };
+
+    root.querySelectorAll('input[type="range"]').forEach(attachLock);
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                if (!(node instanceof HTMLElement)) return;
+                if (node.matches('input[type="range"]')) attachLock(node);
+                node.querySelectorAll?.('input[type="range"]').forEach(attachLock);
+            });
+        });
+        queueRestore();
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    return () => observer.disconnect();
+}
+
+if (typeof window !== 'undefined') {
+    window.enableSliderScrollLock = enableSliderScrollLock;
+}
+
 function getStandardDefaults() {
     if (typeof window !== 'undefined' && window.STANDARD_MODE_DEFAULTS) {
         return window.STANDARD_MODE_DEFAULTS;
@@ -15,6 +73,12 @@ function getStandardDefaults() {
 
 function setInputLocked(element, isLocked) {
     if (!element) return;
+    // readOnly has no effect on <select>, so selects must lock via disabled instead.
+    if (element.tagName === 'SELECT') {
+        element.disabled = isLocked;
+        element.classList.toggle('input-readonly', isLocked);
+        return;
+    }
     // Use a single lock path so all standard-mode fields look and behave the same.
     element.disabled = false;
     element.readOnly = isLocked;
@@ -36,25 +100,32 @@ function setMode(mode) {
         ? CopywritingHelpers.getModeStandardDescription() 
         : CopywritingHelpers.getModeCustomDescription();
     
-    ['growth', 'vol', 'marginCall', 'primeRate', 'spreadRate', 'inflationRate']
+    ['growth', 'vol', 'marginCall', 'primeRate', 'spreadRate', 'inflationRate',
+        'oscillatorSelect', 'tailModelSelect',
+        'garchOmega', 'garchAlpha', 'garchBeta',
+        'hestonKappa', 'hestonTheta', 'hestonSigmaV', 'hestonRho',
+        'mertonJumpLambda', 'mertonJumpMu', 'mertonJumpSigma']
         .forEach(id => setInputLocked(document.getElementById(id), isStandard));
     
-    // Show LTV slider in both modes; the loan derivation stays hidden to the user
+    // Show LTV input in both modes; the loan derivation stays hidden to the user
     const ltvSliderGroup = document.getElementById('ltvSliderGroup');
     if (ltvSliderGroup) ltvSliderGroup.classList.add('is-flex');
     const loanAmountGroup = document.getElementById('loanAmountGroup');
     if (loanAmountGroup) loanAmountGroup.classList.add('is-flex');
     
-    // Configure LTV slider and hidden loan amount based on mode
+    // Configure LTV input and hidden loan amount based on mode
     const ltvSlider = document.getElementById('ltvSlider');
     const loanAmountInput = document.getElementById('loanAmount');
     
     const standardDefaults = getStandardDefaults();
 
     if (isStandard) {
-        // Standard Mode: slider max 50%
-        if (ltvSlider) ltvSlider.max = standardDefaults.MAX_LTV;
-        if (ltvSlider) ltvSlider.disabled = false;
+        // Standard Mode: locked Max Test LTV (defaults to 40%)
+        if (ltvSlider) {
+            ltvSlider.max = standardDefaults.MAX_LTV;
+            ltvSlider.value = standardDefaults.MAX_LTV;
+            setInputLocked(ltvSlider, true);
+        }
         if (loanAmountInput) {
             setInputLocked(loanAmountInput, true);
         }
@@ -66,36 +137,18 @@ function setMode(mode) {
         document.getElementById('vol').value = standardDefaults.VOLATILITY;
         document.getElementById('marginCall').value = standardDefaults.MARGIN_CALL_LTV;
         document.getElementById('inflationRate').value = standardDefaults.INFLATION_RATE;
+        // Standard Mode always runs the GBM+Merton provider
+        document.getElementById('oscillatorSelect').value = 'gbm';
+        document.getElementById('tailModelSelect').value = 'merton';
         
-        // Cap LTV at 35% if it was higher in custom mode
-        let currentLtv = parseFloat(ltvSlider.value);
-        if (currentLtv > standardDefaults.MAX_LTV) {
-            currentLtv = standardDefaults.MAX_LTV;
-            ltvSlider.value = currentLtv;
-            document.getElementById('ltvDisplay').innerText = currentLtv;
+        if (ltvSlider) {
+            ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
         }
-        
-        // Reset slider color in standard mode
-        ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
         
         // Calculate loan amount from LTV and collateral
         updateLoanFromSlider();
-        
-        // Clear LTV warning in standard mode
-        document.getElementById('ltvWarning').classList.add('is-hidden');
-    } else {
-        // Custom Mode: slider max 100%, hidden loan amount remains internal
-        if (ltvSlider) ltvSlider.max = 100;
-        if (ltvSlider) ltvSlider.disabled = false;
-        if (loanAmountInput) {
-            setInputLocked(loanAmountInput, false);
-        }
-        
-        // Check and show LTV warnings if applicable
-        validateAndColorLTV();
-    }
 
-}
+}}
 
 
 /**
@@ -107,46 +160,28 @@ function validateAndColorLTV() {
     
     const ltv = parseFloat(document.getElementById('ltvSlider').value);
     const ltvSlider = document.getElementById('ltvSlider');
-    const ltvWarning = document.getElementById('ltvWarning');
-    const ltvWarningIcon = document.getElementById('ltvWarningIcon');
-    const ltvWarningText = document.getElementById('ltvWarningText');
-    ltvSlider.classList.remove('strategy-slider--danger', 'strategy-slider--warning', 'strategy-slider--default');
-    
-    if (ltv >= 100) {
-        // Red slider and warning for over 100% LTV
-        ltvSlider.classList.add('strategy-slider--danger');
-        ltvWarning.classList.remove('is-hidden');
-        ltvWarningIcon.textContent = '🚨';
-        ltvWarningText.textContent = 'Loan amount exceeds 100% of collateral. This is extremely risky and may trigger forced liquidation.';
-    } else if (ltv >= 35) {
-        // Yellow slider and warning for 35%+ LTV
-        ltvSlider.classList.add('strategy-slider--warning');
-        ltvWarning.classList.remove('is-hidden');
-        ltvWarningIcon.textContent = '⚠️';
-        ltvWarningText.textContent = 'Loan-to-Value ratio exceeds 35%. Standard mode caps at 35% to match historical best practices.';
-    } else {
-        // Purple slider (default) and no warning
-        ltvSlider.classList.add('strategy-slider--default');
-        ltvWarning.classList.add('is-hidden');
-    }
+
 }
 
 /**
- * Update loan amount based on LTV slider (all modes)
+ * Update loan amount based on LTV input (all modes)
  */
 function updateLoanFromSlider() {
-    const ltv = parseFloat(document.getElementById('ltvSlider').value);
-    const collateral = parseFloat(document.getElementById('assetValue').value);
+    const ltvEl = document.getElementById('ltvSlider');
+    if (!ltvEl) return;
+    const ltv = parseFloat(ltvEl.value) || 0;
+    const collateral = parseFloat(document.getElementById('assetValue').value) || 0;
     const loanAmount = (collateral * ltv / 100).toFixed(0);
     
-    document.getElementById('ltvDisplay').innerText = ltv;
-    document.getElementById('loanAmount').value = loanAmount;
+    const display = document.getElementById('ltvDisplay');
+    if (display) display.innerText = ltv;
+    const loanAmountInput = document.getElementById('loanAmount');
+    if (loanAmountInput) loanAmountInput.value = loanAmount;
     
     // Validate and color LTV if in custom mode
     if (currentMode === 'custom') {
         validateAndColorLTV();
     }
-    
 }
 
 /**
@@ -157,32 +192,35 @@ function updateLoanFromDirectInput() {
     const collateral = parseFloat(document.getElementById('assetValue').value) || 1;
     const ltv = (loanAmount / collateral * 100);
     
-    // Update slider and display
-    document.getElementById('ltvSlider').value = ltv;
-    document.getElementById('ltvDisplay').innerText = Math.round(ltv);
+    // Update input and display
+    const ltvEl = document.getElementById('ltvSlider');
+    if (ltvEl) ltvEl.value = Math.round(ltv);
+    const display = document.getElementById('ltvDisplay');
+    if (display) display.innerText = Math.round(ltv);
     
     // Validate and color LTV if in custom mode
     if (currentMode === 'custom') {
         validateAndColorLTV();
     }
-    
 }
 
 /**
  * Update loan amount when collateral changes
  */
 function updateLoanFromCollateral() {
-    const ltv = parseFloat(document.getElementById('ltvSlider').value);
-    const collateral = parseFloat(document.getElementById('assetValue').value);
+    const ltvEl = document.getElementById('ltvSlider');
+    if (!ltvEl) return;
+    const ltv = parseFloat(ltvEl.value) || 0;
+    const collateral = parseFloat(document.getElementById('assetValue').value) || 0;
     const loanAmount = (collateral * ltv / 100).toFixed(0);
     
-    document.getElementById('loanAmount').value = loanAmount;
+    const loanAmountInput = document.getElementById('loanAmount');
+    if (loanAmountInput) loanAmountInput.value = loanAmount;
     
     // Validate and color LTV if in custom mode
     if (currentMode === 'custom') {
         validateAndColorLTV();
     }
-    
 }
 
 /**
@@ -197,7 +235,19 @@ async function runSimulation() {
 
     try {
         console.log('[Script] Calling runSimulationWithAdapter()...');
-        const results = await runSimulationWithAdapter(getSimulationInputs());
+        const slider = document.getElementById('strategySlider');
+        const results = await runSimulationWithAdapter(getSimulationInputs(), {
+            onBaselineComplete: (partialResults) => {
+                console.log('[Script] Baseline (Tier 1) completed early');
+                simulationResults = partialResults;
+                // Render baseline immediately
+                displayResults(partialResults, { isPartial: true });
+                // Lock slider while remaining math executes in background
+                if (slider) {
+                    slider.disabled = true;
+                }
+            }
+        });
         console.log('[Script] Results received from adapter:', results);
         
         if (!results) {
@@ -209,9 +259,14 @@ async function runSimulation() {
         simulationResults = results;
         console.log('[Script] Results stored globally, strategies count:', results.strategies.length);
         
+        // Re-enable slider when full simulation finishes
+        if (slider) {
+            slider.disabled = false;
+        }
+        
         // Display results (histogram and strategic report)
         console.log('[Script] Calling displayResults with full results object');
-        displayResults(results);
+        displayResults(results, { isPartial: false });
         console.log('[Script] displayResults completed');
         
         return results;
@@ -220,6 +275,23 @@ async function runSimulation() {
         alert(CopywritingHelpers.getSimulationErrorMessage(error.message));
         return null;
     }
+}
+
+function resolveProviderId() {
+    const oscillator = document.getElementById('oscillatorSelect')?.value;
+    const tailModel = document.getElementById('tailModelSelect')?.value;
+    const key = `${oscillator}+${tailModel}`;
+
+    if (!(key in PROVIDER_ID_MAP)) {
+        throw new Error(`Unsupported simulation combination: ${key}`);
+    }
+
+    const providerId = PROVIDER_ID_MAP[key];
+    if (providerId !== 0 && providerId !== 1) {
+        throw new Error(`Simulation combination is not implemented: ${key}`);
+    }
+
+    return providerId;
 }
 
 function getSimulationInputs() {
@@ -234,7 +306,7 @@ function getSimulationInputs() {
     const volatility = parseFloat(document.getElementById('vol').value) / 100;
     const inflation = parseFloat(document.getElementById('inflationRate').value) / 100;
     const marginCallLTV = parseFloat(document.getElementById('marginCall').value) / 100;
-    const maxLTV = Math.max(0, marginCallLTV - 0.05);
+    const maxLTV = parseFloat(document.getElementById('ltvSlider').value) / 100;
     const months = years * 12;
     return {
         initialEquity,
@@ -252,7 +324,13 @@ function getSimulationInputs() {
         simulationCount: UI_CONSTANTS.SIMULATION_COUNT,
         baselineSimulationCount: UI_CONSTANTS.BASE_CASE_SIMULATIONS,
         numStrategies: UI_CONSTANTS.NUM_STRATEGIES - 1,
-        modelId: STANDARD_MODE_DEFAULTS.MODEL_ID,
+        statsConfig: {
+            retainedPercentile: UI_CONSTANTS.WEALTH_PERCENTILES.retained,
+            medianPercentile: UI_CONSTANTS.WEALTH_PERCENTILES.median,
+            highPercentile: UI_CONSTANTS.WEALTH_PERCENTILES.high,
+            histogramBins: UI_CONSTANTS.HISTOGRAM_BINS
+        },
+        providerId: currentMode === 'custom' ? resolveProviderId() : STANDARD_MODE_DEFAULTS.SIMULATOR.id,
         months
     };
 }
@@ -290,34 +368,47 @@ function findTargetStrategyIndex(targetSurvival) {
     return closest.index;
 }
 
-function updateSummary(strategyIndex) {
+function updateSummary(strategyIndex, isPartial = false) {
     if (!simulationResults) return;
     
     const strategy = simulationResults.strategies[strategyIndex];
+    if (!strategy) return;
     
+    const currentLtvPercent = Number((strategy.targetLTV ?? 0) * 100);
+    const isBaseCase = strategyIndex === 0 || currentLtvPercent === 0;
+    const summaryLtvSpan = document.getElementById('summaryCurrentLtv');
+    if (summaryLtvSpan) {
+        summaryLtvSpan.textContent = `${currentLtvPercent.toFixed(1)}%`;
+    }
+    
+    const summaryBox = document.getElementById('dynamicSummary');
+    const criteriaBox = document.getElementById('strategyCriteria');
+    const medianRealWealth = strategy.medianWealth ?? 0;
+    const survivalRate = strategy.survivalRate ?? 0;
+
+    // Base Case (0% LTV) Summary: No self-comparison, omit 3-zone grid and criteria table
+    if (isBaseCase) {
+        summaryBox.innerHTML = `<div class="box box--info" style="margin-bottom: 1rem;">
+            <strong>${isPartial ? '⏳ Background Processing:' : 'Results Ready:'}</strong> ${isPartial ? CopywritingHelpers.getBaselineProgressMessage() : CopywritingHelpers.getResultsReadyMessage()}
+           </div>`;
+        if (criteriaBox) criteriaBox.innerHTML = '';
+        return;
+    }
+
+    // Leveraged Strategy (>0% LTV) Summary
     // Use pre-calculated trinary statistics from orchestrator results
     const trinaryStats = strategy.trinaryStats;
     const verdict = CopywritingHelpers.generateVerdict(trinaryStats);
-    
-    const summaryBox = document.getElementById('dynamicSummary');
-    const medianRealWealth = strategy.medianWealth;
-    const survivalRate = strategy.survivalRate;
-    const benchmarkMedian = strategy.benchmarkMedian;
-    const delta = medianRealWealth - benchmarkMedian;
+    const benchmarkMean = strategy.benchmarkExpected ?? simulationResults.benchmark?.expectedWealth ?? medianRealWealth;
+    const delta = medianRealWealth - benchmarkMean;
+    const totalDeposits = strategy.totalDeposits ?? 0;
 
     // Get narrative text from copywriting helpers
-    const narrative = CopywritingHelpers.getStrategySummaryNarrative(strategy.targetLTV, survivalRate, medianRealWealth, benchmarkMedian, delta);
+    const narrative = CopywritingHelpers.getStrategySummaryNarrative(strategy.targetLTV ?? 0, survivalRate, medianRealWealth, benchmarkMean, delta, totalDeposits);
 
     // Build the summary HTML
     let summaryHTML = `
-        <!-- CONSTANT LTV STRATEGY HEADER -->
-        <div class="result-hero">
-            <h3>📈 Constant LTV Leveraged DCA</h3>
-            <p>
-                This strategy maintains a constant target LTV while deposits and market movements change portfolio value and debt.
-            </p>
-        </div>
-        
+
         <!-- VERDICT CONTAINER (Traffic Light) -->
         <div class="result-verdict">
             <h3>${verdict.icon} ${verdict.title}</h3>
@@ -345,216 +436,46 @@ function updateSummary(strategyIndex) {
 
         <p>${narrative.strategy}</p>
         <p>${narrative.outcomes}</p>
-        <p><strong>${narrative.baseline}</strong></p>
-        <p><strong>${narrative.leverageImpact}</strong></p>
+        <p>${narrative.leverageImpact}</p>
         
-        <hr class="result-divider">
-        
-        <!-- IMPLEMENTATION SUMMARY TABLE -->
-        <div class="result-criteria">
-            <h4>Strategy Success Criteria</h4>
-            <table>
-                <thead>
-                    <tr>
-                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().outcome}</th>
-                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().goal}</th>
-                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().current}</th>
-                        <th>${CopywritingHelpers.getSuccessCriteriaHeaders().status}</th>
-                    </tr>
-                    <tr>
-                        <td><strong class="result-sucker">${CopywritingHelpers.getSuccessCriteriaLabel('sucker')}</strong></td>
-                        <td>${CopywritingHelpers.getSuccessCriteriaThreshold('sucker')}</td>
-                        <td>${trinaryStats.suckerPercent.toFixed(1)}%</td>
-                        <td>
-                            <span class="result-status ${trinaryStats.suckerPercent < trinaryStats.profitPercent ? 'result-status-good' : 'result-status-warning'}">
-                                ${trinaryStats.suckerPercent < trinaryStats.profitPercent ? '✓ OK' : '✗ LIKELY'}
-                            </span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><strong class="result-profit">${CopywritingHelpers.getSuccessCriteriaLabel('profit')}</strong></td>
-                        <td>${CopywritingHelpers.getSuccessCriteriaThreshold('profit')}</td>
-                        <td>${trinaryStats.profitPercent.toFixed(1)}%</td>
-                        <td>
-                            <span class="result-status ${verdict.spread > 20 && trinaryStats.ruinPercent < 2 ? 'result-status-good' : 'result-status-warning'}">
-                                ${verdict.spread > 20 && trinaryStats.ruinPercent < 2 ? '✓ STRONG' : 'REVIEW'}
-                            </span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <p class="note">
-                ${CopywritingHelpers.getSuccessCriteriaNoteText()}
-            </p>
-        </div>
         `;
-        
-        // Add diagnostic fix suggestions if available
-        if (verdict.fixSuggestion && verdict.fixSuggestion.length > 0) {
-            const fixListHTML = verdict.fixSuggestion.map(fix => `<li>${fix}</li>`).join('');
-            summaryHTML += `
-            <div class="result-fixes">
-                <h4>${CopywritingHelpers.getFixStrategyHeaderText()}</h4>
-                <ul>
-                    ${fixListHTML}
-                </ul>
-            </div>
-            `;
-        }
+
     
     summaryBox.innerHTML = summaryHTML;
-}
-
-/**
- * Render Deposits Over Time Line Chart
- * Uses pre-calculated cash flow schedules from simulation results
- */
-function renderDepositsLineChart(strategyIndex) {
-    console.log('[DepositsLineChart] renderDepositsLineChart called with index:', strategyIndex);
-    
-    if (!simulationResults) {
-        console.error('[DepositsLineChart] No simulationResults available');
-        return;
-    }
-    
-    const strategy = simulationResults.strategies[strategyIndex];
-    const benchmark = simulationResults.benchmark;
-    const loanDetails = simulationResults.loanDetails;
-    
-    console.log('[DepositsLineChart] Strategy data:', {
-        hasSecuritiesPath: !!strategy.meanSecuritiesPath,
-        hasDebtPath: !!strategy.debtPath,
-        securitiesPathLength: strategy.meanSecuritiesPath?.length,
-        debtPathLength: strategy.debtPath?.length
-    });
-    
-    // Integration layer must provide complete data
-    if (!strategy.meanSecuritiesPath || !strategy.debtPath || !benchmark.meanSecuritiesPath) {
-        console.error('[DepositsLineChart] Missing cash flow schedules from integration layer');
-        document.getElementById('depositsLineChart').innerHTML = '<p class="chart-error">Error: Integration layer did not provide complete schedule data</p>';
-        return;
-    }
-    
-    const months = loanDetails.months;
-    
-    // Generate time points (years)
-    const timePoints = [];
-    for (let month = 0; month <= months; month++) {
-        timePoints.push(month / 12);
-    }
-    
-    const nonLeverageDeposits = [];
-    const leverageDeposits = [];
-    const debtBalance = [];
-    for (let month = 0; month <= months; month++) {
-        nonLeverageDeposits.push(benchmark.meanSecuritiesPath[month] || 0);
-        leverageDeposits.push(strategy.meanSecuritiesPath[month] || 0);
-        debtBalance.push(strategy.debtPath[month] || 0);
-    }
-    
-    console.log('[DepositsLineChart] Cumulative deposits calculated');
-    console.log('[DepositsLineChart] Sample data:', {
-        month0: { nonLeverage: nonLeverageDeposits[0], leverage: leverageDeposits[0], debt: debtBalance[0] },
-        month6: { nonLeverage: nonLeverageDeposits[6], leverage: leverageDeposits[6], debt: debtBalance[6] },
-        monthEnd: { nonLeverage: nonLeverageDeposits[months], leverage: leverageDeposits[months], debt: debtBalance[months] }
-    });
-    
-    // Create Plotly traces
-    const nonLeverageTrace = {
-        x: timePoints,
-        y: nonLeverageDeposits,
-        type: 'scatter',
-        mode: 'lines',
-        name: 'Securities (No Leverage)',
-        line: {
-            color: '#2196F3',  // Blue
-            width: 3
-        },
-        hovertemplate: '<b>No Leverage</b><br>Time: %{x:.1f} years<br>Securities: $%{y:,.0f}<extra></extra>'
-    };
-    
-    const leverageTrace = {
-        x: timePoints,
-        y: leverageDeposits,
-        type: 'scatter',
-        mode: 'lines',
-        name: 'Securities (With Leverage)',
-        line: {
-            color: '#9C27B0',  // Purple
-            width: 3
-        },
-        hovertemplate: '<b>With Leverage</b><br>Time: %{x:.1f} years<br>Securities: $%{y:,.0f}<extra></extra>'
-    };
-    
-    const debtTrace = {
-        x: timePoints,
-        y: debtBalance,
-        type: 'scatter',
-        mode: 'lines',
-        name: 'Debt Balance (Principal + Accrued Interest)',
-        line: {
-            color: '#F44336',  // Red
-            width: 3,
-            dash: 'dash'
-        },
-        hovertemplate: '<b>Remaining Debt</b><br>Time: %{x:.1f} years<br>Balance: $%{y:,.0f}<extra></extra>'
-    };
-    
-    // Create layout
-    const layout = {
-        title: `Present Value of Deposits Over Time (Strategy ${strategyIndex + 1})`,
-        xaxis: {
-            title: 'Time (Years)',
-            tickformat: '.1f'
-        },
-        yaxis: {
-            title: 'Value (Today\'s Dollars)',
-            tickformat: '$,.0f'
-        },
-        hovermode: 'x unified',
-        margin: { t: 80, b: 80, l: 80, r: 200 },
-        autosize: true,
-        plot_bgcolor: '#f9f9f9',
-        paper_bgcolor: '#ffffff',
-        legend: {
-            x: 1.02,
-            xanchor: 'left',
-            y: 1,
-            yanchor: 'top',
-            bgcolor: 'rgba(255, 255, 255, 0.9)',
-            bordercolor: '#ddd',
-            borderwidth: 1
-        }
-    };
-    
-    // Plotly config for responsive display
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        displaylogo: false
-    };
-    
-    // Render chart
-    console.log('[DepositsLineChart] Rendering chart...');
-    return Plotly.newPlot('depositsLineChart', [nonLeverageTrace, leverageTrace, debtTrace], layout, config);
+   
 }
 
 function renderSecuritiesDebtChart(strategyIndex) {
     if (!simulationResults || typeof Plotly === 'undefined') return;
 
     const strategy = simulationResults.strategies[strategyIndex];
-    if (!strategy || !strategy.meanSecuritiesPath || !strategy.meanDebtPath) return;
+    const benchmark = simulationResults.benchmark;
+    const loanDetails = simulationResults.loanDetails;
+    if (!strategy || !benchmark || !strategy.meanSecuritiesPath || !strategy.meanDebtPath || !benchmark.meanSecuritiesPath) return;
 
-    const months = strategy.months;
+    const months = loanDetails.months ?? Math.round((loanDetails.years ?? 0) * 12);
     const timePoints = Array.from({ length: months + 1 }, (_, month) => month / 12);
+    const realDeposits = Array.from(
+        { length: months + 1 },
+        (_, month) => loanDetails.initialEquity + loanDetails.monthlyBudget * month
+    );
+    const styles = getComputedStyle(document.documentElement);
     const traces = [
         {
             x: timePoints,
             y: strategy.meanSecuritiesPath,
             type: 'scatter',
             mode: 'lines',
-            name: 'Average Securities',
-            line: { color: '#1976D2', width: 2 }
+            name: 'Average Securities (Leveraged)',
+            line: { color: styles.getPropertyValue('--md-chart-leveraged').trim(), width: 2 }
+        },
+        {
+            x: timePoints,
+            y: benchmark.meanSecuritiesPath,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Average Securities (Unleveraged DCA)',
+            line: { color: styles.getPropertyValue('--md-chart-unleveraged').trim(), width: 2 }
         },
         {
             x: timePoints,
@@ -562,12 +483,20 @@ function renderSecuritiesDebtChart(strategyIndex) {
             type: 'scatter',
             mode: 'lines',
             name: 'Average Debt',
-            line: { color: '#C62828', width: 2 }
+            line: { color: styles.getPropertyValue('--md-error').trim(), width: 2, dash: 'dash' }
+        },
+        {
+            x: timePoints,
+            y: realDeposits,
+            type: 'scatter',
+            mode: 'lines',
+            name: 'Real Deposits',
+            line: { color: styles.getPropertyValue('--md-text-muted').trim(), width: 2, dash: 'dot' }
         }
     ];
 
     return Plotly.newPlot('securitiesDebtChart', traces, {
-        title: 'Average Securities and Debt',
+        title: 'Average Wealth Values',
         xaxis: { title: 'Years' },
         yaxis: { title: 'Real value ($)' },
         hovermode: 'x unified',
@@ -579,8 +508,10 @@ function renderSecuritiesDebtChart(strategyIndex) {
  * Display Results and Initialize Interactive Elements
  * @param {Object} results - Full results object from adapter {strategies, loanDetails, benchmark}
  */
-function displayResults(results) {
+function displayResults(results, options = {}) {
     console.log('[DisplayResults] Called with results:', results);
+    simulationResults = results;
+    const isPartial = options.isPartial ?? results.isPartial ?? false;
     
     const data = results.strategies;
     const loanDetails = results.loanDetails;
@@ -588,24 +519,19 @@ function displayResults(results) {
     
     const summary = document.getElementById('summary');
     const targetIndex = DEFAULT_STRATEGY_INDEX;
-    const targetStrategy = data[targetIndex];
-
-    summary.innerHTML = `
-        <div class="analysis-parameters">
-            <strong>Analysis Parameters</strong><br>
-            <span class="analysis-parameter">Monthly Budget (Baseline): <strong>$${loanDetails.monthlyBudget.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
-            <span class="analysis-parameter">Starting Portfolio Equity: <strong>$${presentValue.toLocaleString(undefined, {maximumFractionDigits: 0})}</strong></span><br>
-            <span class="analysis-parameter">Inflation Rate: <strong>${(loanDetails.inflationRate * 100).toFixed(1)}%</strong> (All wealth values in today's dollars)</span><br><br>
-        </div>
-        <strong>Starting Point:</strong> Base case at <strong>${(targetStrategy.targetLTV * 100).toFixed(1) + "% LTV"}</strong>.<br><br>
-        <em class="summary-instruction">Use the slider below to explore the leverage spectrum from the baseline to higher target LTVs.</em>
-    `;
+    const currentStrategy = data[targetIndex] ?? results.benchmark ?? { targetLTV: 0 };
+    const currentLtvPercent = Number((currentStrategy.targetLTV ?? 0) * 100);
 
     const slider = document.getElementById('strategySlider');
-    slider.value = targetIndex;
+    if (slider) {
+        slider.min = 0;
+        slider.max = Math.max(0, data.length - 1);
+        slider.value = targetIndex;
+        slider.disabled = isPartial;
+    }
 
     updateSliderPills(targetIndex);
-    updateSummary(targetIndex);
+    updateSummary(targetIndex, isPartial);
     
     // Show results div FIRST so Plotly can calculate proper dimensions
     document.getElementById('results').classList.add('is-visible');
@@ -614,9 +540,6 @@ function displayResults(results) {
     console.log('[DisplayResults] Rendering histogram for strategy index:', targetIndex);
     renderHistogram(targetIndex);
     
-    // Render deposits over time line chart
-    console.log('[DisplayResults] Rendering deposits line chart for strategy index:', targetIndex);
-    renderDepositsLineChart(targetIndex);
     renderSecuritiesDebtChart(targetIndex);
 }
 
@@ -627,7 +550,6 @@ function handleSliderChange(event) {
     const strategyIndex = parseInt(event.target.value);
     updateSliderPills(strategyIndex);
     renderHistogram(strategyIndex);
-    renderDepositsLineChart(strategyIndex);
     renderSecuritiesDebtChart(strategyIndex);
     updateSummary(strategyIndex);
 }
@@ -664,7 +586,6 @@ async function handleCalculate() {
 function updateSliderPills(activeIndex) {
     if (!simulationResults) return;
     
-    const monthlyBudget = simulationResults.loanDetails.monthlyBudget;
     const selectedStrategy = simulationResults.strategies[activeIndex];
     
     if (!selectedStrategy) return;
@@ -673,15 +594,18 @@ function updateSliderPills(activeIndex) {
     const selectedLtvSpan = document.getElementById('selectedLtv');
     const survivalRateSpan = document.getElementById('survivalRate');
     const outperformanceRateSpan = document.getElementById('outperformanceRate');
+    const dcaMeanComparison = document.getElementById('dcaMeanComparison');
     
     if (selectedLtvSpan && survivalRateSpan && outperformanceRateSpan) {
         selectedLtvSpan.textContent = (selectedStrategy.targetLTV * 100).toFixed(1) + "%";
         
         const survivalRate = selectedStrategy.survivalRate;
         const outperformanceRate = selectedStrategy.trinaryStats?.profitPercent || 0;
+        const isBaseline = activeIndex === 0 || Number(selectedStrategy.targetLTV ?? 0) === 0;
         
         survivalRateSpan.textContent = Math.round(survivalRate);
         outperformanceRateSpan.textContent = Math.round(outperformanceRate);
+        dcaMeanComparison.hidden = isBaseline;
     }
 }
 
@@ -711,6 +635,7 @@ function validateInputs() {
  * Initialize Application
  */
 document.addEventListener('DOMContentLoaded', () => {
+    enableSliderScrollLock();
     const setText = (id, text) => {
         const element = document.getElementById(id);
         if (element) element.textContent = text;
@@ -808,14 +733,32 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('monthlyBudget').value = DEFAULT_INPUTS.MONTHLY_BUDGET;
     document.getElementById('assetValue').value = DEFAULT_INPUTS.STARTING_DEPOSIT;
     
-    // Initialize LTV slider with correct starting value
-    document.getElementById('ltvSlider').value = DEFAULT_INPUTS.STARTING_LTV;
-    document.getElementById('ltvDisplay').innerText = DEFAULT_INPUTS.STARTING_LTV;
+    // Initialize LTV input with correct starting value
+    const ltvEl = document.getElementById('ltvSlider');
+    if (ltvEl) {
+        ltvEl.value = DEFAULT_INPUTS.STARTING_LTV;
+    }
+    const ltvDisplay = document.getElementById('ltvDisplay');
+    if (ltvDisplay) {
+        ltvDisplay.innerText = DEFAULT_INPUTS.STARTING_LTV;
+    }
     
     // Calculate and set initial loan amount
     const initialLoanAmount = (DEFAULT_INPUTS.STARTING_DEPOSIT * DEFAULT_INPUTS.STARTING_LTV / 100).toFixed(0);
     document.getElementById('loanAmount').value = initialLoanAmount;
-    
+
+    // Pre-fill future mechanism parameter inputs; they remain locked until their simulators are compiled.
+    document.getElementById('garchOmega').value = GARCH_PARAMS_DEFAULTS.OMEGA;
+    document.getElementById('garchAlpha').value = GARCH_PARAMS_DEFAULTS.ALPHA;
+    document.getElementById('garchBeta').value = GARCH_PARAMS_DEFAULTS.BETA;
+    document.getElementById('hestonKappa').value = HESTON_PARAMS_DEFAULTS.KAPPA;
+    document.getElementById('hestonTheta').value = HESTON_PARAMS_DEFAULTS.THETA;
+    document.getElementById('hestonSigmaV').value = HESTON_PARAMS_DEFAULTS.SIGMA_V;
+    document.getElementById('hestonRho').value = HESTON_PARAMS_DEFAULTS.RHO;
+    document.getElementById('mertonJumpLambda').value = MERTON_PARAMS_DEFAULTS.JUMP_LAMBDA;
+    document.getElementById('mertonJumpMu').value = MERTON_PARAMS_DEFAULTS.JUMP_MU;
+    document.getElementById('mertonJumpSigma').value = MERTON_PARAMS_DEFAULTS.JUMP_SIGMA;
+
     // Set initial mode to standard
     setMode('standard');
     
@@ -833,24 +776,58 @@ function renderHistogram(strategyIndex) {
     const benchmark = simulationResults.benchmark;
     if (!strategy || !benchmark) return;
 
-    return Plotly.newPlot('histogramChart', [
-        {
+    const isBaseline = strategyIndex === 0 || Number(strategy.targetLTV ?? 0) === 0;
+    const styles = getComputedStyle(document.documentElement);
+    const chartColors = {
+        ruin: styles.getPropertyValue('--md-error').trim(),
+        sucker: styles.getPropertyValue('--md-warning-border').trim(),
+        profit: styles.getPropertyValue('--md-success').trim(),
+        dcaSurvival: styles.getPropertyValue('--md-chart-dca-survival').trim(),
+        dcaOverlay: styles.getPropertyValue('--md-chart-dca-overlay').trim()
+    };
+    const ruinOpacity = Number(styles.getPropertyValue('--md-chart-ruin-opacity').trim());
+    const outcomeOpacity = Number(styles.getPropertyValue('--md-chart-outcome-opacity').trim());
+    const dcaOverlayOpacity = Number(styles.getPropertyValue('--md-chart-dca-overlay-opacity').trim());
+    const totalDeposits = Number(strategy.totalDeposits ?? 0);
+    const benchmarkMean = Number(strategy.benchmarkExpected ?? benchmark.expectedWealth ?? 0);
+
+    const traces = [];
+
+    if (isBaseline) {
+        const outcomes = { ruin: [], survived: [] };
+        strategy.finalWealthArray.forEach((wealth) => {
+            outcomes[wealth <= totalDeposits ? 'ruin' : 'survived'].push(wealth);
+        });
+        traces.push(
+            { x: outcomes.ruin, type: 'histogram', histnorm: 'probability', name: 'DCA Ruin', opacity: ruinOpacity, marker: { color: chartColors.ruin } },
+            { x: outcomes.survived, type: 'histogram', histnorm: 'probability', name: 'DCA Survived', opacity: outcomeOpacity, marker: { color: chartColors.dcaSurvival } }
+        );
+    } else {
+        traces.push({
             x: benchmark.finalWealthArray,
             type: 'histogram',
             histnorm: 'probability',
             name: 'DCA Benchmark',
-            opacity: 0.55,
-            marker: { color: UI_CONSTANTS.HISTOGRAM_COLORS.benchmark }
-        },
-        {
-            x: strategy.finalWealthArray,
-            type: 'histogram',
-            histnorm: 'probability',
-            name: `Target LTV ${((strategy.targetLTV || 0) * 100).toFixed(0)}%`,
-            opacity: 0.65,
-            marker: { color: UI_CONSTANTS.HISTOGRAM_COLORS.overperformed }
-        }
-    ], {
+            opacity: dcaOverlayOpacity,
+            marker: { color: chartColors.dcaOverlay }
+        });
+    }
+
+    if (!isBaseline) {
+        const outcomes = { ruin: [], sucker: [], profit: [] };
+        strategy.finalWealthArray.forEach((wealth) => {
+            if (wealth <= totalDeposits) outcomes.ruin.push(wealth);
+            else if (wealth > benchmarkMean) outcomes.profit.push(wealth);
+            else outcomes.sucker.push(wealth);
+        });
+        traces.push(
+            { x: outcomes.ruin, type: 'histogram', histnorm: 'probability', name: 'Ruin', opacity: ruinOpacity, marker: { color: chartColors.ruin } },
+            { x: outcomes.sucker, type: 'histogram', histnorm: 'probability', name: 'Sucker', opacity: outcomeOpacity, marker: { color: chartColors.sucker } },
+            { x: outcomes.profit, type: 'histogram', histnorm: 'probability', name: 'Profit', opacity: outcomeOpacity, marker: { color: chartColors.profit } }
+        );
+    }
+
+    return Plotly.newPlot('histogramChart', traces, {
         title: `Final Real Wealth (Strategy ${strategyIndex + 1})`,
         barmode: 'overlay',
         xaxis: { title: 'Final Real Wealth (Today\'s Purchasing Power)', tickformat: '$,.0f' },

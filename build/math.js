@@ -24,6 +24,36 @@ async function instantiate(module, imports = {}) {
   const { exports } = await WebAssembly.instantiate(module, adaptedImports);
   const memory = exports.memory || imports.env.memory;
   const adaptedExports = Object.setPrototypeOf({
+    runOscillator_gbm(state, config, month) {
+      // assembly/math/runOscillator_gbm(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, i32) => f64
+      state = __retain(__lowerStaticArray(__setF64, 4, 3, state, Float64Array) || __notnull());
+      config = __lowerStaticArray(__setF64, 4, 3, config, Float64Array) || __notnull();
+      try {
+        return exports.runOscillator_gbm(state, config, month);
+      } finally {
+        __release(state);
+      }
+    },
+    runJump_none(state, config, month) {
+      // assembly/math/runJump_none(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, i32) => f64
+      state = __retain(__lowerStaticArray(__setF64, 4, 3, state, Float64Array) || __notnull());
+      config = __lowerStaticArray(__setF64, 4, 3, config, Float64Array) || __notnull();
+      try {
+        return exports.runJump_none(state, config, month);
+      } finally {
+        __release(state);
+      }
+    },
+    runJump_merton(state, config, month) {
+      // assembly/math/runJump_merton(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, i32) => f64
+      state = __retain(__lowerStaticArray(__setF64, 4, 3, state, Float64Array) || __notnull());
+      config = __lowerStaticArray(__setF64, 4, 3, config, Float64Array) || __notnull();
+      try {
+        return exports.runJump_merton(state, config, month);
+      } finally {
+        __release(state);
+      }
+    },
     getSimulationMethod(providerId) {
       // assembly/math/getSimulationMethod(i32) => (~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, f64, f64, i32) => void
       return __liftInternref(exports.getSimulationMethod(providerId) >>> 0);
@@ -38,22 +68,22 @@ async function instantiate(module, imports = {}) {
         __release(state);
       }
     },
-    transition_gbm_const(state, config, monthlyDeposit, targetLTV, month) {
-      // assembly/math/transition_gbm_const(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, f64, f64, i32) => void
+    sim_gbm_none_const_const(state, config, monthlyDeposit, targetLTV, month) {
+      // assembly/math/sim_gbm_none_const_const(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, f64, f64, i32) => void
       state = __retain(__lowerStaticArray(__setF64, 4, 3, state, Float64Array) || __notnull());
       config = __lowerStaticArray(__setF64, 4, 3, config, Float64Array) || __notnull();
       try {
-        exports.transition_gbm_const(state, config, monthlyDeposit, targetLTV, month);
+        exports.sim_gbm_none_const_const(state, config, monthlyDeposit, targetLTV, month);
       } finally {
         __release(state);
       }
     },
-    transition_merton_const(state, config, monthlyDeposit, targetLTV, month) {
-      // assembly/math/transition_merton_const(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, f64, f64, i32) => void
+    sim_gbm_merton_const_const(state, config, monthlyDeposit, targetLTV, month) {
+      // assembly/math/sim_gbm_merton_const_const(~lib/staticarray/StaticArray<f64>, ~lib/staticarray/StaticArray<f64>, f64, f64, i32) => void
       state = __retain(__lowerStaticArray(__setF64, 4, 3, state, Float64Array) || __notnull());
       config = __lowerStaticArray(__setF64, 4, 3, config, Float64Array) || __notnull();
       try {
-        exports.transition_merton_const(state, config, monthlyDeposit, targetLTV, month);
+        exports.sim_gbm_merton_const_const(state, config, monthlyDeposit, targetLTV, month);
       } finally {
         __release(state);
       }
@@ -127,10 +157,13 @@ export const {
   randn,
   simulateGeometricBrownianMotionMonthlyGrowthFactor,
   simulateMertonJumpFactor,
+  runOscillator_gbm,
+  runJump_none,
+  runJump_merton,
   getSimulationMethod,
   initializeLeveragedDCAState,
-  transition_gbm_const,
-  transition_merton_const,
+  sim_gbm_none_const_const,
+  sim_gbm_merton_const_const,
 } = await (async url => instantiate(
   await (async () => {
     const isNodeOrBun = typeof process != "undefined" && process.versions != null && (process.versions.node != null || process.versions.bun != null);

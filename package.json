@@ -16,8 +16,8 @@
   "devDependencies": {
     "assemblyscript": "^0.27.37",
     "jsdom": "^25.0.1",
-    "vite": "^5.4.21",
-    "vitest": "^2.1.9"
+    "vite": "^8.3.6",
+    "vitest": "^5.1.0"
   },
   "type": "module"
 }

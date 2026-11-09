@@ -1,0 +1,12 @@
+{
+  "docs": [],
+  "interpreters": {},
+  "commands": [
+    {
+      "form": "^npm test$",
+      "why": "the test suite, the round's check (docs/DEVELOPMENT.md, Checks)",
+      "example": "npm test"
+    }
+  ],
+  "tree_exclusions": {}
+}

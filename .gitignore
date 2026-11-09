@@ -86,3 +86,5 @@ Thumbs.db
 !build/*.wasm
 !build/*.js
 !build/*.d.ts
+temp/
+.claude/state/

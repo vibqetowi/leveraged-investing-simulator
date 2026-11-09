@@ -348,8 +348,10 @@ function unmarshalStrategyResults(statsBuffer, months, scenarios) {
         debtMeanSeries.push(statsBuffer[pos++]);
         netWorthSeries.push(statsBuffer[pos++]);
     }
+    // finalWealthArray is the histogram's trimmed lower part; the outcome counts cover every run.
     const finalWealthArray = Array.from(statsBuffer.subarray(pos));
-    const effectiveScenarios = finalWealthArray.length > 0 ? finalWealthArray.length : scenarios;
+    const countedRuns = ruinCount + suckerCount + profitCount;
+    const effectiveScenarios = countedRuns > 0 ? countedRuns : scenarios;
 
     return {
         survivalRate, medianWealth, p90Wealth, expectedWealth, standardDeviation, finalWealthArray,

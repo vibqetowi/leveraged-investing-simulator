@@ -52,6 +52,21 @@ function getEffectiveBorrowingRate(primeRate = STANDARD_MODE_DEFAULTS.PRIME_RATE
     return primeRate + spreadRate;
 }
 
+// Aspirational Config struct fields (see documentation/DataFlow.md "Memory Layout").
+// Not yet wired to wasm; math.ts still uses a fixed Merton jump distribution and no GARCH/Heston.
+const GARCH_PARAMS_DEFAULTS = {
+    OMEGA: 0.00001,   // long-run variance constant
+    ALPHA: 0.08,      // weight on the most recent squared shock
+    BETA: 0.90        // weight on prior conditional variance (persistence)
+};
+
+const HESTON_PARAMS_DEFAULTS = {
+    KAPPA: 2.0,       // speed of mean reversion of variance
+    THETA: 0.04,      // long-run variance level
+    SIGMA_V: 0.3,     // volatility of variance ("vol of vol")
+    RHO: -0.7         // correlation between asset and variance shocks
+};
+
 const MERTON_PARAMS_DEFAULTS = {
     JUMP_LAMBDA: 0.125, // expected jumps per year (~once per 8 years, matches current hardcoded p=1/96 monthly)
     JUMP_MU: -0.225,    // mean jump size (log-return), midpoint of current -15% to -30% range
@@ -73,9 +88,9 @@ const UI_CONSTANTS = {
     SIMULATION_COUNT: 10000,              // Number of Monte Carlo simulations per bin
     NUM_STRATEGIES: 21,                   // Number of payment strategies to test
     WEALTH_PERCENTILES: {
-        retained: 95,                     // Retain outcomes through the 95th percentile
-        median: 50,                       // 50th percentile of retained outcomes
-        high: 90                          // 90th percentile of retained outcomes
+        retained: 95,                     // Histogram plots outcomes through the 95th percentile
+        median: 50,                       // 50th percentile of all outcomes
+        high: 90                          // 90th percentile of all outcomes
     },
     HISTOGRAM_BINS: 100                    // Number of bins for histogram visualization
 };

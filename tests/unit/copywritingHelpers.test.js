@@ -50,7 +50,8 @@ describe('CopywritingHelpers', () => {
         expect(window.CopywritingHelpers.getOutcomeDescription('profit')).toContain('simulated DCA mean');
         const narrative = window.CopywritingHelpers.getStrategySummaryNarrative(0.1, 90, 64000, 60000, 4000, 50000);
         expect(narrative.outcomes).toContain('$64,000 against $50,000 in deposits');
-        expect(narrative.leverageImpact).toContain('DCA Mean of $60,000: +$4,000');
+        expect(narrative.leverageImpact).toContain('+$4,000');
+        expect(narrative.leverageImpact).toContain('median of $60,000');
     });
 
     it('keeps the results layout ordered with the slider ahead of the charts', () => {
@@ -108,6 +109,7 @@ describe('CopywritingHelpers', () => {
             targetLTV: 0,
             finalWealthArray: [1, 2, 3],
             medianWealth: 50000,
+            expectedWealth: 60000,
             survivalRate: 92,
             totalDeposits: 190000,
             trinaryStats: { ruinPercent: 2, suckerPercent: 28, profitPercent: 70 },
@@ -126,7 +128,7 @@ describe('CopywritingHelpers', () => {
             meanSecuritiesPath: [0, 2, 4],
             debtPath: [0, 1, 2],
             months: 12,
-            benchmarkExpected: 50000,
+            benchmarkExpected: 60000,
             benchmarkWealthArray: benchmark.finalWealthArray
         };
 
@@ -148,14 +150,18 @@ describe('CopywritingHelpers', () => {
         expect(dynamicSummary.innerHTML).toContain('Results Ready');
         expect(dynamicSummary.innerHTML).not.toContain('Background Processing');
 
-        // Switch to strategy index 1 (20% LTV): should render outcome-grid and result-criteria
+        // Moving the strategy slider (docs/bugs.md 2: its listener must be attached) re-renders
+        // the summary for strategy index 1 (20% LTV), with the outcome grid.
         const slider = document.getElementById('strategySlider');
         slider.value = '1';
         slider.dispatchEvent(new Event('input', { bubbles: true }));
 
+        expect(document.getElementById('selectedLtv').textContent).toBe('20.0%');
         expect(dynamicSummary.querySelector('.outcome-grid')).not.toBeNull();
-        expect(document.getElementById('strategyCriteria').querySelector('.result-criteria')).not.toBeNull();
         expect(dynamicSummary.innerHTML).toContain('Simulation results');
+        // The impact line compares medians (75,000 vs DCA's 50,000), not DCA's mean (60,000).
+        expect(dynamicSummary.innerHTML).toContain('+$25,000');
+        expect(dynamicSummary.innerHTML).toContain('median of $50,000');
     });
 
     it('renders DCA without outcome overlays and partitions leveraged outcomes using deposits and the DCA mean', async () => {

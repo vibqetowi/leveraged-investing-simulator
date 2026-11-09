@@ -147,20 +147,16 @@ function setMode(mode) {
         
         // Calculate loan amount from LTV and collateral
         updateLoanFromSlider();
-
-}}
-
-
-/**
- * Validate and color LTV indicator (Yellow at 35%+, Red at 100%+)
- * Only used in Custom Mode
- */
-function validateAndColorLTV() {
-    if (currentMode !== 'custom') return;
-    
-    const ltv = parseFloat(document.getElementById('ltvSlider').value);
-    const ltvSlider = document.getElementById('ltvSlider');
-
+    } else {
+        // Custom Mode: unlocked Max Test LTV (up to 100%)
+        if (ltvSlider) {
+            ltvSlider.max = 100;
+            setInputLocked(ltvSlider, false);
+        }
+        if (loanAmountInput) {
+            setInputLocked(loanAmountInput, false);
+        }
+    }
 }
 
 /**
@@ -177,11 +173,6 @@ function updateLoanFromSlider() {
     if (display) display.innerText = ltv;
     const loanAmountInput = document.getElementById('loanAmount');
     if (loanAmountInput) loanAmountInput.value = loanAmount;
-    
-    // Validate and color LTV if in custom mode
-    if (currentMode === 'custom') {
-        validateAndColorLTV();
-    }
 }
 
 /**
@@ -197,11 +188,6 @@ function updateLoanFromDirectInput() {
     if (ltvEl) ltvEl.value = Math.round(ltv);
     const display = document.getElementById('ltvDisplay');
     if (display) display.innerText = Math.round(ltv);
-    
-    // Validate and color LTV if in custom mode
-    if (currentMode === 'custom') {
-        validateAndColorLTV();
-    }
 }
 
 /**
@@ -216,11 +202,6 @@ function updateLoanFromCollateral() {
     
     const loanAmountInput = document.getElementById('loanAmount');
     if (loanAmountInput) loanAmountInput.value = loanAmount;
-    
-    // Validate and color LTV if in custom mode
-    if (currentMode === 'custom') {
-        validateAndColorLTV();
-    }
 }
 
 /**
@@ -399,12 +380,13 @@ function updateSummary(strategyIndex, isPartial = false) {
     // Use pre-calculated trinary statistics from orchestrator results
     const trinaryStats = strategy.trinaryStats;
     const verdict = CopywritingHelpers.generateVerdict(trinaryStats);
-    const benchmarkMean = strategy.benchmarkExpected ?? simulationResults.benchmark?.expectedWealth ?? medianRealWealth;
-    const delta = medianRealWealth - benchmarkMean;
+    // The impact line compares medians: the strategy's against plain DCA's.
+    const benchmarkMedian = simulationResults.benchmark?.medianWealth ?? medianRealWealth;
+    const delta = medianRealWealth - benchmarkMedian;
     const totalDeposits = strategy.totalDeposits ?? 0;
 
     // Get narrative text from copywriting helpers
-    const narrative = CopywritingHelpers.getStrategySummaryNarrative(strategy.targetLTV ?? 0, survivalRate, medianRealWealth, benchmarkMean, delta, totalDeposits);
+    const narrative = CopywritingHelpers.getStrategySummaryNarrative(strategy.targetLTV ?? 0, survivalRate, medianRealWealth, benchmarkMedian, delta, totalDeposits);
 
     // Build the summary HTML
     let summaryHTML = `

@@ -130,9 +130,14 @@ describe('orchestrator to worker to WASM integration', () => {
         expect(baselineCallbackResult.benchmark).not.toBeNull();
         expect(baselineCallbackResult.isPartial).toBe(true);
 
+        // Only the histogram is trimmed to the retained 90%; the outcome counts cover all 100 runs.
         expect(result.benchmark.finalWealthArray).toHaveLength(90);
         expect(result.strategies[0].finalWealthArray).toHaveLength(90);
         expect(result.benchmark.histogramBins.numBins).toBe(100);
+        const { ruinCount, suckerCount, profitCount, totalSims } = result.benchmark.trinaryStats;
+        expect(ruinCount + suckerCount + profitCount).toBe(100);
+        expect(totalSims).toBe(100);
+        expect(result.benchmark.numSurvived).toBe(suckerCount + profitCount);
 
         await Promise.all(workerInstances.map((worker) => worker.terminate()));
     }, 20000);

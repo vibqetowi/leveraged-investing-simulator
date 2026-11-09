@@ -100,14 +100,12 @@ export function runStats(): i32 {
     // 2. Sort scenario indices ascending by nominal terminal wealth
     sortScenarioIndices(scenarioIndices, nominalTerminalWealth, 0, scenarios - 1);
 
-    // 3. Retain the configured lower part of the sorted wealth distribution.
-    const filteredCount = max(1, i32(f64(scenarios) * retainedPercentile / 100.0));
-
-    // 4. Single deflator calculation for terminal real wealth
+    // 3. Single deflator calculation for terminal real wealth
     const finalDeflator = Math.pow(1.0 + inflation, f64(months) / 12.0);
     const invFinalDeflator = 1.0 / finalDeflator;
 
-    const filteredRealWealth = new StaticArray<f64>(filteredCount);
+    // 4. Statistics over every scenario. Sorted ascending, so realWealth is too.
+    const realWealth = new StaticArray<f64>(scenarios);
     let survivors = 0;
     let marginCalls = 0;
     let ruinCount = 0;
@@ -115,14 +113,14 @@ export function runStats(): i32 {
     let profitCount = 0;
     let expected = 0.0;
 
-    for (let i = 0; i < filteredCount; i++) {
+    for (let i = 0; i < scenarios; i++) {
         const scenario = scenarioIndices[i];
-        const realWealth = nominalTerminalWealth[scenario] * invFinalDeflator;
-        filteredRealWealth[i] = realWealth;
+        const wealth = nominalTerminalWealth[scenario] * invFinalDeflator;
+        realWealth[i] = wealth;
 
-        if (realWealth > totalRealDeposits) survivors++;
-        if (realWealth <= totalRealDeposits) ruinCount++;
-        else if (realWealth > benchmarkMean) profitCount++;
+        if (wealth > totalRealDeposits) survivors++;
+        if (wealth <= totalRealDeposits) ruinCount++;
+        else if (wealth > benchmarkMean) profitCount++;
         else suckerCount++;
 
         for (let month = 1; month <= months; month++) {
@@ -132,27 +130,29 @@ export function runStats(): i32 {
                 break;
             }
         }
-        expected += realWealth;
+        expected += wealth;
     }
 
-    const nFilteredF64 = f64(filteredCount);
-    expected /= nFilteredF64;
+    const nScenariosF64 = f64(scenarios);
+    expected /= nScenariosF64;
 
-    const medianIndex = min(filteredCount - 1, i32(f64(filteredCount) * medianPercentile / 100.0));
-    const highIndex = min(filteredCount - 1, i32(f64(filteredCount) * highPercentile / 100.0));
-    const median = filteredRealWealth[medianIndex];
-    const p90 = filteredRealWealth[highIndex];
+    const medianIndex = min(scenarios - 1, i32(nScenariosF64 * medianPercentile / 100.0));
+    const highIndex = min(scenarios - 1, i32(nScenariosF64 * highPercentile / 100.0));
+    const median = realWealth[medianIndex];
+    const p90 = realWealth[highIndex];
 
     let standardDeviation = 0.0;
-    for (let i = 0; i < filteredCount; i++) {
-        const diff = filteredRealWealth[i] - expected;
+    for (let i = 0; i < scenarios; i++) {
+        const diff = realWealth[i] - expected;
         standardDeviation += diff * diff;
     }
-    standardDeviation = Math.sqrt(standardDeviation / nFilteredF64);
+    standardDeviation = Math.sqrt(standardDeviation / nScenariosF64);
 
-    // 5. Native binning over the filtered real wealth distribution
-    const binMin = filteredRealWealth[0];
-    const binMax = filteredRealWealth[filteredCount - 1];
+    // 5. The histogram alone is trimmed to the configured lower part of the
+    // distribution, so its long right tail doesn't flatten the bins.
+    const filteredCount = max(1, i32(nScenariosF64 * retainedPercentile / 100.0));
+    const binMin = realWealth[0];
+    const binMax = realWealth[filteredCount - 1];
     const binCounts = new StaticArray<f64>(numBins);
     for (let b = 0; b < numBins; b++) binCounts[b] = 0.0;
 
@@ -160,13 +160,13 @@ export function runStats(): i32 {
     if (range > 0.0) {
         const invBinWidth = f64(numBins) / range;
         for (let i = 0; i < filteredCount; i++) {
-            let binIdx = i32((filteredRealWealth[i] - binMin) * invBinWidth);
+            let binIdx = i32((realWealth[i] - binMin) * invBinWidth);
             if (binIdx < 0) binIdx = 0;
             if (binIdx >= numBins) binIdx = numBins - 1;
             binCounts[binIdx] += 1.0;
         }
     } else {
-        binCounts[0] = nFilteredF64;
+        binCounts[0] = f64(filteredCount);
     }
 
     // 6. Output buffer serialization
@@ -174,7 +174,7 @@ export function runStats(): i32 {
     outputBuffer[outputIdx++] = 0.0;
     outputBuffer[outputIdx++] = f64(months);
     outputBuffer[outputIdx++] = totalRealDeposits;
-    outputBuffer[outputIdx++] = (f64(survivors) / nFilteredF64) * 100.0;
+    outputBuffer[outputIdx++] = (f64(survivors) / nScenariosF64) * 100.0;
     outputBuffer[outputIdx++] = median;
     outputBuffer[outputIdx++] = p90;
     outputBuffer[outputIdx++] = expected;
@@ -193,7 +193,7 @@ export function runStats(): i32 {
         outputBuffer[outputIdx++] = binCounts[b];
     }
 
-    // Monthly path averages over retained filtered scenarios
+    // Monthly path averages over every scenario.
     // Deflators depend only on month, not scenario, so precompute the whole schedule once.
     const invDeflators = new StaticArray<f64>(months + 1);
     for (let month = 0; month <= months; month++) {
@@ -204,20 +204,19 @@ export function runStats(): i32 {
         let securitiesSum = 0.0;
         let debtSum = 0.0;
         const invDeflator = invDeflators[month];
-        for (let i = 0; i < filteredCount; i++) {
-            const scenario = scenarioIndices[i];
+        for (let scenario = 0; scenario < scenarios; scenario++) {
             const point = tensorIndex(scenario, month, months);
             securitiesSum += inputBuffer[securitiesOffset + point] * invDeflator;
             debtSum += inputBuffer[debtOffset + point] * invDeflator;
         }
-        outputBuffer[outputIdx++] = securitiesSum / nFilteredF64;
-        outputBuffer[outputIdx++] = debtSum / nFilteredF64;
-        outputBuffer[outputIdx++] = (securitiesSum - debtSum) / nFilteredF64;
+        outputBuffer[outputIdx++] = securitiesSum / nScenariosF64;
+        outputBuffer[outputIdx++] = debtSum / nScenariosF64;
+        outputBuffer[outputIdx++] = (securitiesSum - debtSum) / nScenariosF64;
     }
 
-    // Output filtered final real wealth values
+    // Output the histogram's final real wealth values: the trimmed lower part only.
     for (let i = 0; i < filteredCount; i++) {
-        outputBuffer[outputIdx++] = filteredRealWealth[i];
+        outputBuffer[outputIdx++] = realWealth[i];
     }
 
     return outputIdx;

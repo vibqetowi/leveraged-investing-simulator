@@ -114,7 +114,8 @@ describe('Button firing', () => {
     });
 
     it('fires the nav-tab click listener to switch preambles', () => {
-        document.querySelector('.nav-tab[data-preamble="lifecycle"]').click();
-        expect(document.getElementById('lifecycle-investing-copy').hidden).toBe(false);
+        document.getElementById('constant-leverage-dca-copy').hidden = true;
+        document.querySelector('.nav-tab[data-preamble="constant"]').click();
+        expect(document.getElementById('constant-leverage-dca-copy').hidden).toBe(false);
     });
 });

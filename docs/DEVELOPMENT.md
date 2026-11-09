@@ -23,6 +23,34 @@ agent runs the suite each round. `npm run asbuild` is not listed, because it
 rewrites the committed `build/` files: after an `assembly/` change it is a
 step for the user.
 
+## Branches and releases
+
+The user's rule (2026-11-09):
+
+- **`dev` is where work lands, one commit per GitHub issue.** Each commit
+  does what one issue asks, and its message ends with `Closes #<n>`. CI runs
+  the tests on every push to any branch.
+- **`main` holds only releases.** When `dev` is worth a release, a pull
+  request merges `dev` into `main`, and the merge is tagged `vX.Y.Z` on
+  `main`. The push to `main` builds and deploys the Pages site. GitHub
+  closes the issues the release's commits name when they reach `main`, the
+  default branch.
+- The release pull request is always merged with a merge commit, never
+  squashed, so `dev` and `main` never diverge and each issue's commit stays
+  on `main`.
+- `main` is not protected, by choice: the rule holds by convention.
+- `main` before this rule: `v0.1.0` to `v0.3.0`, then `81ef2ff`, the
+  untagged Claude Code setup commit.
+
+```mermaid
+flowchart LR
+    I["issue #n"] --> C["one commit on dev<br/>Closes #n"]
+    C --> T["CI: tests"]
+    C --> R{"worth a release?"}
+    R -- no --> I
+    R -- yes --> P["PR dev → main"] --> M["merge, tag vX.Y.Z"] --> D["Pages build and deploy"]
+```
+
 ## Change workflow
 
 1. Read [documentation/DataFlow.md](../documentation/DataFlow.md) before
@@ -83,16 +111,18 @@ No coverage is configured, and the code writes no logs to disk.
 
 Both workflows are in `.github/workflows/`:
 
-- **Tests** (`test.yml`), on every push and pull request: `npm ci` and
-  `npm test` on Node 26, then the `performance` job runs `npm run perf` and
-  uploads `performance-report.log` as an artifact. It does not rebuild the
+- **Tests** (`test.yml`), on every push to any branch and every pull
+  request, as Branches and releases asks: `npm ci` and `npm test` on
+  Node 26, then the `performance` job runs `npm run perf` and uploads
+  `performance-report.log` as an artifact; the benchmark too runs on every
+  push for now ([docs/plan.md](plan.md), F.2). It does not rebuild the
   WASM, so it tests the committed `build/` files.
-- **Deploy to GitHub Pages** (`jekyll-gh-pages.yml`), on push to `main` and
-  by hand, on Node 26: `npm ci`, `npm run asbuild`, a Jekyll build with
-  `_config.yml`, a check that the site has `index.html`, `config.js`,
-  `styles.css` and `build/sim.wasm`, then the deploy. It doesn't wait for
-  the tests, so it deploys even when they fail.
+- **Deploy to GitHub Pages** (`jekyll-gh-pages.yml`), on push to `main` (a
+  release merge) and by hand, on Node 26: `npm ci`, `npm run asbuild`, a
+  Jekyll build with `_config.yml`, a check that the site has `index.html`,
+  `config.js`, `styles.css` and `build/sim.wasm`, then the deploy. It
+  doesn't wait for the tests yet, so it deploys even when they fail
+  ([docs/plan.md](plan.md), F.1).
 
-The repo is public, on the personal account `vibqetowi`. Whether `main` has
-branch protection or required checks hasn't been checked: the agent's `gh`
-reads don't cover it ([docs/gap-audit.md](gap-audit.md)).
+The repo is public, on the personal account `vibqetowi`. `main` has no
+branch protection or required checks, by choice (Branches and releases).

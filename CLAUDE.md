@@ -67,19 +67,12 @@ the finance the user needs to choose.
 ## Copy keeps the user's voice
 
 The page's copy (`index.html`, `scripts/copywritingHelper.js`) and the
-README's opening are written in the user's voice (the user, 2026-11-09,
-after I flattened it). The reference is `temp/tone_guide/`:
-`brandbook.xml` (the Bill Nye directive: airy prose, first principles,
-plain English; camp, deadpan asides) and `writing_samples.md` (the
-leveraged-investing posts this tool came from). When copy has to change:
-
-- I keep the user's sentences and change only what became false.
-- A new line is written in that voice: short lines, a deadpan aside,
-  the user's own phrasings and jokes reused ("stonks and stupid",
-  "momentum trading with extra steps"). Never neutral explainer prose.
-- The plan shows the lines before and after, for sign-off before `/go`.
-
-The design docs (`documentation/`) stay technical.
+README's opening are written in the user's voice, by `temp/brandbook.md`,
+from the leveraged-investing posts in `temp/associated-linkedin-posts.md`,
+where the user adds each new post (both untracked by the user's choice,
+2026-11-10: they stay out of this public repo). Editing the user's prose
+in general is CLAUDE-shared.md's CRAFT-10. The design docs
+(`documentation/`) stay technical.
 
 ## Never clean
 

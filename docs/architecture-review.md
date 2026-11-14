@@ -1,6 +1,6 @@
 # Architecture review
 
-`documentation/DataFlow.md` (the design aimed at) weighed against the code,
+[DataFlow.md](DataFlow.md) (the design aimed at) weighed against the code,
 section by section: what the doc says, what the code does, which is better,
 and what to do. Checked on 2026-11-09 against `dev` at `81ef2ff` plus the
 uncommitted commits E (bug fixes) and C1 (DataFlow.md's leveraged-DCA

@@ -10,10 +10,11 @@ every repo goes there instead (TRUTH-2).
 
 ## Design docs are aspirational
 
-`documentation/DataFlow.md` and the other design docs describe the design
+`docs/DataFlow.md` and the other design docs describe the design
 being aimed at, which may be ahead of or behind the code; neither is assumed
-to be the better one. Until the architecture review ([docs/plan.md](docs/plan.md),
-commit B) settles each point, I don't rewrite a design doc to match the code
+to be the better one. Until the architecture review
+([docs/architecture-review.md](docs/architecture-review.md), carried out by
+[docs/plan.md](docs/plan.md), commit I) settles each point, I don't rewrite a design doc to match the code
 or the code to match a doc, and `/review` doesn't treat a gap between them as
 a defect. This narrows TRUTH-1 and CRAFT-4 for design docs in this repo.
 Operational docs (README, `docs/DEVELOPMENT.md`, `build/README.md`) stay true
@@ -72,7 +73,62 @@ from the leveraged-investing posts in `temp/associated-linkedin-posts.md`,
 where the user adds each new post (both untracked by the user's choice,
 2026-11-10: they stay out of this public repo). Editing the user's prose
 in general is CLAUDE-shared.md's CRAFT-10. The design docs
-(`documentation/`) stay technical.
+(`docs/DataFlow.md`) stay technical.
+
+Copy has its own modes, entered by this repo's slash commands
+(`.claude/commands/`): `/m1` writes copy, `/m2` audits it. Each makes me
+read the brandbook, then the samples, then the user's latest edits,
+then do the request in that mode (brandbook, the modes). Neither
+releases writes: a `/go` still does.
+
+Before I plan or write any copy, every round (the user, 2026-11-11): I
+read the brandbook, the posts and the user's latest edits to the copy
+(`git diff -- index.html scripts/copywritingHelper.js`) in full. The
+plan holds the lines, each section with brandbook §1.3.1 to §1.3.6,
+before I ask for the `/go` that writes them.
+
+The brandbook stands alone (the user, 2026-11-11): it states the brand
+as it is, with no dates, no "renamed from", no record of past copy or of
+my mistakes. History and the reasons for a change go in the plan or the
+commit message. It holds the brand, the modes and universal writing
+principles, among them how to write about regulated subjects (the
+user, 2026-11-13). What is particular to this product goes in the
+next section.
+
+Its internals stay in it (the user, 2026-11-13; brandbook §0.2): this
+repo is public, so a tracked file, an issue or a commit message cites a
+brandbook clause by its number (`§3.1.2`), never by its name or with
+words standing in for it.
+
+## This product's copy
+
+The page is a product page about finance: brandbook §5.3 applies, with
+these particulars.
+
+- **The reader** is brandbook §2 with a brokerage app: knows what an ETF
+  and DCA are, and has a robo-advisor. Not a finance bro, not Charlie
+  Munger.
+- **The main copy carries the page; its dropdowns are supplementary**
+  (the user, 2026-11-13). A reader who opens none understands every
+  claim and can read the calculator's results: a term the main copy
+  uses is defined in the main copy, and a dropdown only deepens (the
+  maths, a row's scope, the reasoning behind a design choice).
+- **The page's thesis** (the user, 2026-11-13): the models and the
+  research (Ayres and Nalebuff) say leverage pays; volatility decay works
+  against it; this simulator asks whether it pays in a setup an investor
+  actually runs (one recurring investment, a broker's margin calls,
+  skipped buys). The copy says so, and claims excess returns only "according
+  to models".
+- **§5.3.8, applied:** "responsible borrowing" doesn't exist; the page
+  shows the odds, the reader judges.
+- **§5.3.2, the page's own lines**, at the §5.3.3 ceiling:
+
+  | Line | §3.1.2 | §3.1.3 |
+  | --- | --- | --- |
+  | "It's easy to get sucked into products that aren't built to serve the long-term interests of the investor." | the system blamed, not the investor | none needed |
+  | "If debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less than they initially deposited." | the risk, no comfort | none needed |
+  | "Leverage sounds (and is) dangerous which is why most investors are taught to avoid it." | honesty about the risk | "(and is)" |
+  | "Savings accounts exist for a reason." | none needed | the dry aside |
 
 ## Never clean
 
@@ -94,5 +150,5 @@ Besides the shared table (TRUTH-3):
 
 | Read | When |
 | --- | --- |
-| `documentation/DataFlow.md` | Before changing `scripts/`, `assembly/` or `config.js`: module contracts, the provider map, the stats buffer layout |
+| `docs/DataFlow.md` | Before changing `scripts/`, `assembly/` or `config.js`: module contracts, the provider map, the stats buffer layout |
 | `build/README.md` | Before changing `asconfig.json`, the `asbuild:*` scripts or what the worker loads |

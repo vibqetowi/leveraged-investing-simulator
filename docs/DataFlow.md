@@ -100,7 +100,7 @@ The sim holds this struct in WASM memory. Math functions read and mutate it in p
 | `regime` | u32 | Latent regime index s_t | MS-GARCH transitions it. Single-regime models ignore. |
 | `securities` | f64[] | Portfolio value path | All models write output here. |
 | `debt` | f64[] | Loan balance path | All models write output here. |
-| `target_ltv` | f64 | Target LTV ratio | Constant strategy ignores. Lifecycle updates it monthly. |
+| `target_ltv` | f64 | Purchasing LTV: the share of each month's purchase that is borrowed | Constant strategy ignores. Lifecycle updates it monthly. Any value from 0 to 0.99 (100x). |
 | `prime_rate` | f64 | Current prime rate | Interest = prime + spread. Stochastic in future. |
 | `inflation` | f64 | Current inflation rate | Inflation-adjusted deposits read this. |
 
@@ -123,6 +123,17 @@ for (let t = 0; t < nMonths; t++) {
 }
 ```
 
+`ltvSchedule[t]` is the purchasing LTV of month `t`: the share of that
+month's purchase that is borrowed. It is never a level the portfolio is
+held at; the portfolio's own LTV drifts with the market. It may be any
+value from 0 to 0.99 (100x), at or above the margin-call LTV included: such
+a strategy's purchases are skipped whenever they can't be funded (Monthly
+Step Order, step 6), and it shows as near-zero survival.
+
+The strategies of a run are spaced evenly in leverage `1 / (1 − L)`, not
+in LTV: from 1x to `1 / (1 − max)`, each the same multiple of the last,
+with 0% (plain DCA) first.
+
 ## Monthly Step Order
 
 Each precompiled composite simulator binds one oscillator and one jump mechanism to the shared template. For example, `sim_gbm_merton_const_const` binds `runOscillator_gbm`, `runJump_merton`, constant deposits, and constant LTV. The template does not know the concrete mechanism names. Each month it executes:
@@ -130,15 +141,17 @@ Each precompiled composite simulator binds one oscillator and one jump mechanism
 1. **Oscillator:** Call the bound `runOscillator_*` mechanism and apply its multiplicative factor to `securities`.
 2. **Jump Overlay:** Call the bound `runJump_*` mechanism and apply its multiplicative factor to `securities`.
 3. **Apply Interest:** `debt *= (1 + (prime_rate + spread) / 12)`
-4. **Margin Check:** If `securities / debt` ratio breaches margin threshold, force liquidation or trigger margin call.
-5. **Deposit:** Read `deposits[month]`, subtract from `debt`.
-6. **Buy / Restore LTV:** Read `ltv_schedule[month]`, rebalance `securities` and `debt` to hit target LTV.
+4. **Deposit:** `deposits[month]` (the budget `B`) repays `debt`, as cash landing in a margin account does.
+5. **Margin Check:** With `m` the margin-call LTV, the available margin is `A = m × securities − debt`. If `A < 0`, the discretionary reserve is paid in first: only what the call needs, up to the reserve share of `B`, used to repay `debt`. If that's not enough, the lender sells just enough `securities` to repay `debt` down to `m`. An unused reserve is not carried to the next month.
+6. **Recurring Investment:** Read `ltv_schedule[month]` (the purchasing LTV `L`). The purchase is `C = B / (1 − L)`, drawn wholly on margin. It goes through if the buying power `A / (1 − m)` covers it (the same as "after the buy, LTV ≤ m"), adding `C` to both `securities` and `debt`; otherwise it is skipped this month. After a margin call `A` is 0, so the buy is skipped. Nothing is borrowed to bring the portfolio's LTV back to `L`.
 
-The sim calls `runSimulation(providerId)`, which dispatches to `PROVIDERS[providerId]` inside math.ts and invokes that composite function directly for `(state_ptr, config_ptr, deposits_ptr, ltv_schedule_ptr, month)` each step. The composite function handles all five steps internally, including any tail/shock overlay (e.g. Merton jumps). The sim records `securities` and `debt` after each step into the output arrays.
+When the buy goes through, the month's net effect is `B` of the budget plus `B × L / (1 − L)` borrowed. A purchase made at `L` pulls the portfolio's LTV toward `L`. Interest is added to the debt (step 3), so whenever the market returns less than the loan rate the LTV climbs, even without a crash. At `L = 0` the step is plain DCA, which is the benchmark. The engine's one threshold `m` stands in for a broker's margin requirement per security.
+
+The sim calls `runSimulation(providerId)`, which dispatches to `PROVIDERS[providerId]` inside math.ts and invokes that composite function directly for `(state_ptr, config_ptr, deposits_ptr, ltv_schedule_ptr, month)` each step. The composite function handles all six steps internally, including any tail/shock overlay (e.g. Merton jumps). The sim records `securities` and `debt` after each step into the output arrays.
 
 ## Strategy Mapping
 
-Merton is a jump-diffusion overlay on an oscillator, not a standalone oscillator, so combos are named `sim_{oscillator}_{tailModel}_{depositModel}_{targetLTV}`.
+Merton is a jump-diffusion overlay on an oscillator, not a standalone oscillator, so combos are named `sim_{oscillator}_{tailModel}_{depositModel}_{targetLTV}`. The last part names the purchasing-LTV schedule (constant or lifecycle); one strategy of the spectrum is one purchasing LTV, from 0% (plain DCA) to the max purchasing LTV.
 
 | Oscillator | Tail Model | Deposit | Target LTV | Function Name | Provider ID | State Var Changes | Status |
 |------------|-----------|---------|------------|---------------|-------------|-------------------|--------|
@@ -167,7 +180,7 @@ Merton is a jump-diffusion overlay on an oscillator, not a standalone oscillator
 - Stochastic innovations and returns.
 - Account or domain-state transitions.
 - Model-specific state evolution (drift, vol, regime, prev_return).
-- All five monthly steps (stochastic, interest, margin, deposit, buy), including any tail/shock overlay.
+- All six monthly steps (oscillator, jump overlay, interest, deposit, margin check, recurring investment), in the Monthly Step Order.
 
 **Configuration:**
 

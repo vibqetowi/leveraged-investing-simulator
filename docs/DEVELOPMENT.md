@@ -4,7 +4,7 @@ This file owns the rules for changing leveraged-investing-simulator that aren't 
 are in Claude-Code-Setup's `development-shared.md`, which binds here too. How
 to install, run, test and deploy is in the [README](../README.md); the
 architecture and module contracts are in
-[documentation/DataFlow.md](../documentation/DataFlow.md).
+[DataFlow.md](DataFlow.md).
 
 ## Checks
 
@@ -53,7 +53,7 @@ flowchart LR
 
 ## Change workflow
 
-1. Read [documentation/DataFlow.md](../documentation/DataFlow.md) before
+1. Read [DataFlow.md](DataFlow.md) before
    changing `scripts/` or `assembly/`. It is the design aimed at, not a
    description of the code (CLAUDE.md, Design docs are aspirational).
 2. A change to `assembly/`: rebuild with `npm run asbuild`, and commit the

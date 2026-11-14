@@ -2,7 +2,7 @@
 
 A browser-based simulator for comparing leveraged investing strategies with plain dollar-cost averaging. Simulation work runs in WebAssembly and Web Workers so the interface remains responsive.
 
-This is an educational tool, not financial, investment, legal, or tax advice. Simulation results depend on the assumptions and parameters entered by the user and do not predict future performance.
+This is an educational tool, not financial, investment, legal, or tax advice. This is a personal project, unrelated to the author's work and not endorsed by any employer. Simulation results depend on the assumptions and parameters entered by the user and do not predict future performance.
 
 ## Requirements
 
@@ -94,8 +94,7 @@ Do not deploy only the source files under `assembly/`; the browser loads the com
 - `asconfig.json`: AssemblyScript compiler targets
 - `vitest.config.js`: which test files Vitest runs
 - `_config.yml`, `.github/workflows/`: GitHub Pages build and CI ([docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#ci))
-- `documentation/DataFlow.md`: architecture, data flow and module contracts
-- `docs/`: development rules, plan and audits for contributors and the coding agent
+- `docs/`: the architecture, data flow and module contracts (`docs/DataFlow.md`), and the development rules, plan and audits for contributors and the coding agent
 - `tools/`: stand-ins that run Claude-Code-Setup's repo tools on this repo
 
 ## Troubleshooting

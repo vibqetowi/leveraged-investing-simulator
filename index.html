@@ -13,7 +13,7 @@
 <body>
 
 <nav class="top-nav" aria-label="Model navigation">
-    <button class="nav-tab active" type="button" data-preamble="constant">Constant Leverage DCA</button>
+    <button class="nav-tab active" type="button" data-preamble="constant">Leveraged DCA</button>
     <!-- <button class="nav-tab" type="button" data-preamble="lifecycle">Lifecycle Investing</button> -->
 </nav>
 
@@ -21,7 +21,10 @@
     <h1>Leveraged Investing Simulator</h1>
 
            <div class="box box--normal box--tight">
-                <strong>Not Financial Advice:</strong> Educational simulation only. Use of this tool does not constitute financial, investment, legal, or tax advice.
+                <strong>Not Financial Advice:</strong> Educational simulation only. 
+                Use of this tool does not constitute financial, investment, legal, 
+                or tax advice. This is a personal project, unrelated to the 
+                author's work and not endorsed by any employer.
             </div>
 
           <p style="text-align: center; margin: 24px 0;">
@@ -29,65 +32,34 @@
             </p>
 
             <h3 class="section-title-center">What Would the Perfect Wealth Strategy Look Like?</h3>
+            <p id="framing-problem">
+               <strong>It's easy to get sucked into products that aren't
+                built to serve the long-term interests of the investor</strong>. When I opened my self-directed brokerage account, 
+                the app marketed everything at once: robo-advisors, options,
+                managed portfolios. All were framed as equally valid despite two statistically
+                underperforming (robo-advisors, managed portfolios) and one with negative
+                expected value (options).
+            </p>
             <p>
-                In my opinion, an ideal long-term wealth accumulation strategy prioritizes four criteria:
+                I became interested in which product would be valuable, and arrived 
+                at the following framework for evaluating long-term wealth accumulation
+                 strategies:
             </p>
             <ul class="compact-list">
                 <li><strong>Simplicity:</strong> No market timing, no stock picking, no financial degree. A mechanical rule executable for 30 years without active management.</li>
                 <li><strong>Resilient:</strong> Downturns occur. The strategy must be maintainable through good and bad market cycles.</li>
-                <li><strong>Excess Returns:</strong> Consistent outperformance of a benchmark strategy over long periods.</li>
+                <li><strong>Excess Returns:</strong> Consistent outperformance of dollar cost averaging into a broad market index fund over long periods.</li>
                 <li><strong>Efficiency:</strong> Minimized taxes and fees.</li>
             </ul>
             <p>
-                Liquidity is not a primary concern for wealth accumulation. Savings accounts serve that purpose.
+                Liquidity is not a primary concern in this model. Savings accounts exist for a reason.
             </p>
-            <div class="box box--info">
-                <h3 class="section-title-left">Core Market Assumption</h3>
-                <div class="info-box-content">
-                    Everything that follows depends on one assumption: <strong>broad market indexes trend upward over multi-decade periods.</strong> This is not a guarantee, but has held for nearly a century.
-                </div>
-            </div>
-
-            <h3 class="section-title-center">The Wealth Building Benchmark: Dollar Cost Averaging</h3>
-            <p>
-                <strong>Dollar Cost Averaging (DCA)</strong> involves investing a fixed amount at regular intervals into a security, most commonly a broad market index fund (e.g. a $20 market buy of VFV every day).
-
-                 </p>
-                
-                <p>DCA is relatively straightforward and safe, but contains a structural inefficiency: Late crashes can dominate outcomes because dollar-weighted exposure concentrates at the end of the timeline when deposits are largest.
-            </p>
-
-            <p>
-                <strong> This is colloquially known as "last decade risk."</strong>
-            </p>
-
-
-            <div class="box box--info">
-                <h3 class="section-title-left">Margin, Leverage, and LTV</h3>            
-                <div class="info-box-content">
-                <p>
-                <strong>A margin account allows borrowing against securities holdings.</strong> Leverage (borrowing to invest) amplifies losses more than gains. If debt gets too high relative to portfolio value, the lender forces liquidation (margin call), often leaving the investor with less than they initially deposited.
-            </p>
-                    <p>
-                        <strong>Loan-to-Value (LTV)</strong> is debt as a percentage of total portfolio value. $40K equity, $60K borrowed, $100K portfolio: 60% LTV.
-                    </p>
-                    <div class="formula">
-                        LTV = Debt ÷ Total Portfolio Value × 100
-                    </div>
-                    <p>
-                        <strong>Leverage ratio</strong> expresses the same position differently: total position divided by equity. A 60% LTV equals a 2.5x leverage ratio ($100K ÷ $40K).
-                    </p>
-                    <p>
-                        The simulator uses LTV throughout because the inputs and outputs are percentages.
-                    </p>
-                </div>
-            </div>
-
+    
     <div id="constant-leverage-dca-copy"></div>
     <div id="lifecycle-investing-copy" hidden></div>
-    <div class="box box--info">
-            <h3 class="section-title-left">Outputs</h3>
-            <div class="info-box-content">
+    <div id="outputs">
+            <h4 class="section-title-left">Outputs</h4>
+            <div>
                 <ul class="compact-list">
                 <li><strong>Survival probability:</strong> Percentage of scenarios ending strictly above total real deposits. Deposits escalate with inflation (the monthly budget is entered in today's dollars), and all wealth values are expressed in today's purchasing power.</li>
                 <li><strong>Wealth distribution:</strong> For surviving scenarios, final wealth compared to plain DCA with the same real monthly budget.</li>
@@ -96,7 +68,7 @@
                         Every simulation classifies into one of three mutually exclusive categories at the end of the simulation period:
                     </p>
                     <ul class="compact-list nested-list">
-                        <li><strong>Ruin:</strong> Ended with real net worth below total real deposits (lost money).</li>
+                        <li><strong>Ruin:</strong> Ended with real net worth at or below total real deposits (lost money).</li>
                         <li><strong>Sucker:</strong> Ended strictly above total real deposits but underperformed DCA.</li>
                         <li><strong>Profit:</strong> Ended strictly above total real deposits and outperformed the DCA baseline in real terms.</li>
                     </ul>
@@ -226,7 +198,7 @@
             <div class="label-wrapper">
                 <label>Inflation-Adjusted Monthly Budget ($) <div class="tooltip-icon">?</div></label>
                
-                <div class="tooltip-popup">Monthly investment budget, entered in today's purchasing power. The simulator automatically escalates this deposit with inflation each month, so the real monthly contribution stays constant throughout the simulation. Each month, this amount pays down outstanding debt first. If LTV falls below target after paydown, the simulator borrows and buys securities to restore the target ratio. If LTV is at or above target, the deposit reduces debt without purchasing new securities.</div>
+                <div class="tooltip-popup">Monthly investment budget, entered in today's purchasing power. The simulator automatically escalates this deposit with inflation each month, so the real monthly contribution stays constant throughout the simulation.</div>
             </div>
             <input type="number" id="monthlyBudget">
         </div>
@@ -234,13 +206,13 @@
             <div class="label-wrapper">
                 <label id="assetLabel">Initial Deposit ($)         <div class="tooltip-icon">?</div></label>
        
-                <div class="tooltip-popup" id="assetTooltip">Starting capital injected at the start, in today's purchasing power. This becomes equity, and the initial loan is calculated from it using target LTV. For example, $100K deposit at 50% LTV means $100K borrowed for a $200K starting position.</div>
+                <div class="tooltip-popup" id="assetTooltip">Starting capital injected at the start, in today's purchasing power. This becomes equity, and the initial loan is calculated from it using the purchasing LTV. For example, $100K deposit at 50% LTV means $100K borrowed for a $200K starting position.</div>
             </div>
             <input type="number" id="assetValue" step="1">
         </div>
         <div class="input-group" id="ltvSliderGroup">
             <div class="label-wrapper">
-                <label>Max Test LTV (%) <div class="tooltip-icon">?</div></label>
+                <label>Max Purchasing LTV (%) <div class="tooltip-icon">?</div></label>
                 <div class="tooltip-popup">The simulator automatically tests a full spectrum of strategies from <strong>0%</strong> (DCA baseline) up to this maximum LTV, using roughly 20 pretty steps so the range is smooth and readable. In Standard Mode this value is locked at <span id="max-ltv-tooltip"></span>. In Custom Mode it is unlocked for custom exploration.</div>
             </div>
             <input type="number" id="ltvSlider" step="1" value="40" min="0" max="100">
@@ -300,7 +272,7 @@
         <div id="dynamicSummary" class="strategy-summary"></div>
 
         <div class="slider-container">
-            <h3 class="section-title-left">Explore Target LTVs</h3>
+            <h3 class="section-title-left">Explore Purchasing LTVs</h3>
             
             <div class="slider-labels">
                 <span>DCA (No Leverage)</span>
@@ -310,7 +282,7 @@
 
             <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 4px; border-left: 4px solid #2196F3; font-size: 0.85rem; color: #555;">
                 <p style="margin: 0;">
-                    <strong>Current Position:</strong> Target LTV of <strong><span id="selectedLtv">--</span></strong>, with <strong><span id="survivalRate">--</span>%</strong> survival rate<span id="dcaMeanComparison"> and <strong><span id="outperformanceRate">--</span>%</strong> probability of ending above the simulated DCA mean</span>.
+                    <strong>Current Position:</strong> Purchasing LTV of <strong><span id="selectedLtv">--</span></strong>, with <strong><span id="survivalRate">--</span>%</strong> survival rate<span id="dcaMeanComparison"> and <strong><span id="outperformanceRate">--</span>%</strong> probability of ending above the simulated DCA mean</span>.
                 </p>
             </div>
         </div>
@@ -351,12 +323,12 @@
         
         <!-- METHODOLOGY STEP 1 -->
         <p id="methodology-step1-text">
-            At the start, the simulator deposits initial capital and borrows up to target LTV ratio. This establishes a starting position: securities (invested portion) and debt.
+            At the start, the simulator deposits initial capital and borrows at the purchasing LTV. This establishes a starting position: securities (invested portion) and debt.
         </p>
 
-        <h4 class="section-title-left">Step 2: Test Multiple Target LTV Strategies</h4>
+        <h4 class="section-title-left">Step 2: Test Multiple Purchasing LTV Strategies</h4>
         <p id="methodology-step2-text">
-            The simulator tests strategies ranging from DCA (no leverage) to maximum LTV. Each represents a different target ratio: 0% (DCA baseline) through maximal leverage.
+            The simulator tests strategies ranging from DCA (no leverage) to the max purchasing LTV. Each represents a different purchasing LTV: 0% (DCA baseline) through maximal leverage.
         </p>
 
         <h4 class="section-title-left">Step 3: Run Market Scenarios</h4>
@@ -369,9 +341,9 @@
         <ol class="compact-numbered">
             <li><strong>Run market movements:</strong> Generate the monthly return or shock process for the securities portion of the portfolio. The simulator can swap in different market models without changing the rest of the logic.</li>
             <li><strong>Interest accrual:</strong> Debt grows by the monthly cost of borrowing.</li>
-            <li><strong>Check margin:</strong> If LTV exceeds the threshold, the lender forces a liquidation to restore the margin requirement.</li>
             <li><strong>Deposit:</strong> The monthly budget pays down debt directly. Deposits escalate with the inflation rate so that the real monthly contribution remains constant in today's dollars.</li>
-            <li><strong>LTV restore:</strong> If LTV falls below target, the model borrows and buys securities to restore the target ratio.</li>
+            <li><strong>Check margin:</strong> If LTV exceeds the threshold, the discretionary reserve repays debt first; if that's not enough, the lender forces a liquidation to restore the margin requirement.</li>
+            <li><strong>Recurring investment:</strong> The fixed purchase is bought on margin if the account can fund it without crossing the margin call threshold. Otherwise it is skipped this month.</li>
         </ol>
 <div class="box box--info" style="margin-top: 24px;">
     <h3 class="section-title-left" style="margin: 0;">Market Models Currently Supported</h3>
@@ -467,6 +439,8 @@
             <li><strong>Fees & Transaction Costs:</strong> Management fees, trading commissions, bid-ask spreads excluded.</li>
             <li><strong>Behavioral Factors:</strong> Panic-selling during downturns, inability to maintain deposits during job loss, psychological stress not modeled.</li>
             <li><strong>No Voluntary Sales:</strong> Simulation never adjusts strategy or sells voluntarily. Real investors would deleverage proactively, which would reduce ruin probability.</li>
+            <li><strong>Monthly Margin Checks:</strong> Lenders check LTV daily; the simulator checks monthly, so dips that recover within a month never trigger a margin call.</li>
+            <li><strong>One Margin Threshold:</strong> Brokers set a margin requirement per security. The simulator uses the margin call threshold both for margin calls and for whether a recurring investment can be funded.</li>
             <li><strong>No Backtest Mode:</strong> All market paths are synthetic, generated from parametric models (GBM + jump overlay). A future backtest mode will replay realized historical monthly sequences directly, eliminating parameter-calibration disputes entirely.</li>
         </ul>
 
@@ -512,7 +486,6 @@
         <div class="reference">
             <strong><a href="https://www.nber.org/system/files/working_papers/w5793/w5793.pdf" target="_blank">Lifecycle Investing</a>:</strong> Ayres & Nalebuff's paper is a classic argument for using leverage earlier in life, when the investor has more time and human capital to absorb drawdowns.
         </div>
-
 
 </div>
 
